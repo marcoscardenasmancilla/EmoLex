@@ -1,0 +1,9 @@
+cff-version: 1.1.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: M.H.
+  given-names: Cárdenas-Mancilla
+orcid: https://orcid.org/0000-0002-6942-6232 
+title: EmoLex: A Random Forest classifier for the emotional lexicon in Spanish
+version: EmoLex (v1.0.0)
+date-released: 2025-07-25
