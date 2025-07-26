@@ -72,7 +72,7 @@ Automatizar y mejorar la clasificación de palabras emocionales en español util
 
 - Liesefeld, H. R., & Janczyk, M. (2019). Combining speed and accuracy to control for speed–accuracy trade-offs. *Behavior Research Methods, 51*(1), 40–60. https://doi.org/10.3758/s13428-018-1076-x  
 - Pedregosa, F., Varoquaux, G., Gramfort, A., Michel, V., Thirion, B., Grisel, O., ... & Duchesnay, E. (2011). Scikit-learn: Machine learning in Python. *Journal of Machine Learning Research, 12*, 2825–2830.  
-- Pérez-Sánchez, M., Cárdenas-Mancilla, M. H., & Valenzuela, J. (2021). EmoPro: un corpus de propiedades afectivas y psicolingüísticas del español. *Revista de Lingüística Computacional, 17*(1), 45–68.  
+- Pérez-Sánchez, M. Á., Stadthagen-Gonzalez, H., Guasch, M., Hinojosa, J. A., Fraga, I., Marín, J., & Ferré, P. (2021). EmoPro: Emotional prototypicality for 1,286 Spanish words: Relationships with affective and psycholinguistic variables. Behavior Research Methods, 53(5), 1857–1875. https://doi.org/10.3758/s13428-020-01519-9
 - Warriner, A. B., Kuperman, V., & Brysbaert, M. (2013). Norms of valence, arousal, and dominance for 13,915 English lemmas. *Behavior Research Methods, 45*, 1191–1207. https://doi.org/10.3758/s13428-012-0314-x  
 
 ---
