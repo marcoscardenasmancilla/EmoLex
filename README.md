@@ -1,4 +1,4 @@
-# EmoLex_Classifier
+# EmoLex_RF
 
 **Author / Autor**: Dr. Marcos H. Cárdenas Mancilla  
 **E-mail**: marcoscardenasmancilla@gmail.com  
