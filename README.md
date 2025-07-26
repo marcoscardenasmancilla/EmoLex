@@ -8,7 +8,7 @@
 
 ---
 
-## Description (English)
+## Description
 
 This Python script implements a **Random Forest classifier** to automatically assign Spanish words to affective-semantic subgroups based on psycholinguistic and emotional variables. It integrates unsupervised clustering results (sub-clusters) with supervised classification to improve scalability and accuracy in lexical profiling.
 
@@ -38,7 +38,7 @@ To automate and enhance the classification of emotional words in Spanish by leve
 
 ---
 
-## Descripción (Español)
+## Descripción
 
 Este script en Python implementa un **clasificador Random Forest** para asignar automáticamente palabras en español a subgrupos afectivo-semánticos, basándose en variables psicolingüísticas y emocionales. Integra resultados de clasificación no supervisada (sub-clústeres) con aprendizaje supervisado para mejorar la escalabilidad y precisión del perfilamiento léxico.
 
