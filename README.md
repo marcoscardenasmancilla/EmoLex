@@ -5,6 +5,9 @@
 **Creation date / Fecha de creación**: 2025-07-25  
 **License / Licencia**: AGPL V3  
 **Copyright (c) 2025** Marcos H. Cárdenas Mancilla
+**How to cite this repository**:
+
+Cárdenas-Mancilla, M. H. (2025). EmoLex: A Random Forest classifier for emotional lexica in Spanish (Version 1.0.0) [Computer software]. https://doi.org/10.5281/zenodo.16466037
 
 ---
 
