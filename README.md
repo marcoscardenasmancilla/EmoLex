@@ -70,7 +70,7 @@ Automatizar y mejorar la clasificación de palabras emocionales en español util
 
 ## How to cite this repository / Cómo citar este repositorio
 
-- Cárdenas-Mancilla, M. H. (2025). EmoLex: A Random Forest classifier for emotional lexica in Spanish (Version 1.0.0) [Computer software]. https://doi.org/10.5281/zenodo.16466037
+- Cárdenas-Mancilla, M. H. (2025). EmoLex: A Random Forest classifier for emotional lexica in Spanish (Version 1.0.0) [Computer software]. https://doi.org/10.5281/zenodo.16467496
 
 ---
 
