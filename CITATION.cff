@@ -6,6 +6,6 @@ authors:
   orcid: "https://orcid.org/0000-0002-6942-6232"
 title: "EmoLex: A Random Forest classifier for emotional lexica in Spanish"
 version: 1.0.0
-doi: 10.5281/zenodo.16466037
+doi:  10.5281/zenodo.16467496
 date-released: 2025-07-25
 url: "https://github.com/marcoscardenasmancilla/EmoLex"
