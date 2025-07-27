@@ -4,10 +4,7 @@
 **E-mail**: marcoscardenasmancilla@gmail.com  
 **Creation date / Fecha de creación**: 2025-07-25  
 **License / Licencia**: AGPL V3  
-**Copyright (c) 2025** Marcos H. Cárdenas Mancilla
-**How to cite this repository**:
-
-Cárdenas-Mancilla, M. H. (2025). EmoLex: A Random Forest classifier for emotional lexica in Spanish (Version 1.0.0) [Computer software]. https://doi.org/10.5281/zenodo.16466037
+**Copyright (c) 2025** Marcos Hugo Cárdenas Mancilla
 
 ---
 
@@ -37,7 +34,7 @@ This Python script implements a **Random Forest classifier** to automatically as
 
 ### Objective:
 
-To automate and enhance the classification of emotional words in Spanish by leveraging machine learning techniques that combine statistical and semantic cues.
+To automate and enhance the classification of emotional words in Spanish by leveraging machine learning techniques that combine quantitative, afective and psycolinguistic cues.
 
 ---
 
@@ -67,7 +64,13 @@ Este script en Python implementa un **clasificador Random Forest** para asignar 
 
 ### Objetivo:
 
-Automatizar y mejorar la clasificación de palabras emocionales en español utilizando técnicas de aprendizaje automático que combinan información estadística y semántica.
+Automatizar y mejorar la clasificación de palabras emocionales en español utilizando técnicas de aprendizaje automático que combinan información cuantitativa, afectiva y psicolingüística.
+
+---
+
+## How to cite this repository / Cómo citar este repositorio
+
+- Cárdenas-Mancilla, M. H. (2025). EmoLex: A Random Forest classifier for emotional lexica in Spanish (Version 1.0.0) [Computer software]. https://doi.org/10.5281/zenodo.16466037
 
 ---
 
