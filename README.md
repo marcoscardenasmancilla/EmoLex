@@ -34,7 +34,7 @@ This Python script implements a **Random Forest classifier** to automatically as
 
 ### Objective:
 
-To automate and enhance the classification of emotional words in Spanish by leveraging machine learning techniques that combine quantitative, afective and psycolinguistic cues.
+To automate and enhance the classification of emotional words in Spanish by leveraging machine learning techniques that combine quantitative, affective and psycholinguistic cues.
 
 ---
 
