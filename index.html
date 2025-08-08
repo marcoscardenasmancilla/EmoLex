@@ -20,6 +20,7 @@
       .emolex-table th, .emolex-table td { font-size: 0.95em; }
     }
   </style>
+  <!-- Incluye tu archivo functions.js si tienes funciones estadísticas avanzadas -->
   <script src="functions.js"></script>
 </head>
 <body>
@@ -246,7 +247,7 @@
         }
         tbody.appendChild(tr);
       }
-      // Solo mostrar resumen si hay >1 resultado y todos válidos
+      // Si el usuario selecciona varias palabras, calcula y muestra el análisis dinámico aquí
       if (results.length > 1 && bisArr.length > 1) {
         renderStats(bisArr, f1Arr);
         document.getElementById("summary-stats").style.display = "block";
@@ -261,7 +262,7 @@
       document.getElementById("manual-status").textContent = "";
       document.getElementById("select-status").textContent = "";
     }
-    // Estadística mínima, sustituye con tu functions.js si quieres más
+    // Estadística mínima, usa functions.js si está disponible
     function mean(arr) { return typeof functions !== "undefined" && functions.mean ? functions.mean(arr) : (arr.length ? arr.reduce((a,b) => a+b,0)/arr.length : 0); }
     function sd(arr)   { return typeof functions !== "undefined" && functions.sd   ? functions.sd(arr)   : (arr.length ? Math.sqrt(arr.reduce((a,b)=>a+Math.pow(b-mean(arr),2),0)/arr.length) : 0); }
     function lower_ci(m, s, n) { return typeof functions !== "undefined" && functions.lower_ci ? functions.lower_ci(m, s, n) : (m - 1.96*(s/Math.sqrt(n))); }
@@ -283,6 +284,7 @@
           <li><strong>IC 95% F1:</strong> [${lower_ci(mF1,sF1,nF1).toFixed(3)}, ${upper_ci(mF1,sF1,nF1).toFixed(3)}]</li>
         </ul>`;
       }
+      // El resumen se inserta dinámicamente aquí
       document.getElementById("summary-stats").innerHTML = statsHTML;
     }
   </script>
