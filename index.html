@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>EmoLex | Clasificador Automático del Léxico Emocional en Español</title>
+  <title>EmoLex | Clasificador automático del léxico emocional en español</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 2em; background: #f7f9fb;}
     .emolex-section { margin-bottom: 2em; background: #fff; border-radius: 8px; box-shadow: 0 1px 8px #ddd; padding: 2em; }
@@ -16,6 +16,7 @@
     details { margin-top: 1em; }
     summary { font-weight: bold; }
     .bis-info-tip { font-size: 90%; color:#446;}
+    .bis-interpretacion { background: #f6faff; margin-top:1em; border-radius: 5px; padding:1em; font-size: 1.07em;}
     @media (max-width: 700px) {
       .emolex-section { padding: 1em; }
       .emolex-table th, .emolex-table td { font-size: 0.95em; }
@@ -25,12 +26,12 @@
 </head>
 <body>
   <div class="emolex-section">
-    <h2>EmoLex | Clasificador Automático del Léxico Emocional en Español</h2>
+    <h2>EmoLex | Clasificador automático del léxico emocional en español</h2>
     <p>
-      Selecciona una palabra de interés en la lista desplegable, o ingresa una palabra para buscar su clasificación.<br>
+      Selecciona una palabra clasificada del léxico, o ingresa una palabra para buscar su clasificación.<br>
       <small class="bis-info-tip">
-        El <b>Índice de Prototipicidad Emocional (BIS)</b> describe qué tan representativa y compleja es una palabra dentro de su grupo emocional.<br>
-        Palabras con BIS alto suelen procesarse con mayor facilidad y son prototípicas respecto de su clúster emocional; BIS bajo señala palabras atípicas o ambiguas. El valor medio corresponde a palabras con matices intermedios.
+        El <b>Índice de Prototipicidad Emocional (BIS)</b> indica qué tan representativa es una palabra dentro de su grupo emocional en función de atributos cuantitativos, afectivos y psicolingüísticos.
+        Palabras con BIS alto suelen procesarse con mayor facilidad y son prototípicas en su clúster emocional; "BIS bajo" señala palabras atípicas o ambiguas. El valor medio corresponde a palabras con matices semánticos.
       </small>
     </p>
   </div>
@@ -62,7 +63,7 @@
           <th>Sub-Cluster</th>
           <th>
             BIS
-            <span title="Haz click para ver interpretación de BIS"
+            <span title="Haz click para ver interpretación educativa del BIS"
                   onclick="document.getElementById('bis-docente-panel').scrollIntoView({behavior:'smooth'});"
                   style="cursor:pointer; color:#1a7fd7; font-weight:bold;">&#9432;</span>
           </th>
@@ -78,12 +79,18 @@
       </thead>
       <tbody></tbody>
     </table>
+    <div id="bis-help"></div>
   </div>
 
   <!-- PANEL INTERPRETACIÓN BIS DINÁMICO -->
   <div id="bis-docente-panel" class="emolex-section" style="display:none; background:#f6faff;">
-    <h4>Interpretación del Índice de Prototipicidad Emocional (BIS)</h4>
-    <div id="bis-docente-text"></div>
+    <h4>¿Cómo interpretar el Índice BIS?</h4>
+    <ul>
+      <li><b>BIS bajo:</b> Palabra atípica o menos representativa dentro del grupo emocional. Requiere apoyo contextual o ejemplos para su enseñanza.</li>
+      <li><b>BIS medio:</b> Palabra de representatividad intermedia, útil para trabajar matices semánticos o vocabulario extendido.</li>
+      <li><b>BIS alto:</b> Palabra prototípica y central del grupo emocional. Fácil de procesar y enseñar.</li>
+    </ul>
+    <small>Los cortes se adaptan automáticamente al léxico cargado (percentiles 25 y 75).</small>
   </div>
 
   <div class="emolex-section" id="summary-stats" style="display:none;">
@@ -95,7 +102,7 @@
   <details class="emolex-section">
     <summary>¿Cómo interpretar estos resultados?</summary>
     <ul>
-      <li><b>Cluster/Subclúster:</b> Agrupación emocional asignada automáticamente por el modelo.</li>
+      <li><b>Cluster/Subclúster:</b> Agrupación emocional asignada por el modelo.</li>
       <li><b>BIS:</b> Índice de prototipicidad/ambigüedad léxica.</li>
       <li><b>F1-score:</b> Confiabilidad de la predicción (validación cruzada del modelo RF).</li>
       <li><b>Comparativa BIS:</b> Se reporta la diferencia de prototipicidad (Cohen’s d, IC 95%, Hedges’ g) entre subclústeres del mismo clúster, considerando magnitud y dirección.</li>
@@ -106,19 +113,29 @@
     // F1 POR SUB-CLUSTER (del log crossval)
     const F1_by_subcluster = { 1:0.832, 2:0.961, 3:0.943, 4:0.920 };
 
-    // LEXICON dinámico
+    // LEXICON dinámico y percentiles BIS
     let LEXICON = {};
     let wordList = [];
+    let bisQ1 = null, bisQ3 = null;
+
     fetch('lexicon.json')
       .then(response => response.json())
       .then(data => {
         LEXICON = {};
         wordList = [];
+        const bisVals = [];
         data.forEach(entry => {
           const w = entry.Word.toLowerCase();
           LEXICON[w] = entry;
           wordList.push(w);
+          const bis = Number(entry.Balanced_Integration_Score);
+          if (!isNaN(bis)) bisVals.push(bis);
         });
+        // Calcular percentiles para BIS (25 y 75)
+        bisVals.sort((a, b) => a - b);
+        const n = bisVals.length;
+        bisQ1 = bisVals[Math.floor(n * 0.25)];
+        bisQ3 = bisVals[Math.floor(n * 0.75)];
         populateWordSelect();
       });
 
@@ -261,7 +278,7 @@
           if (!isNaN(r.BIS) && r.BIS !== "") bisArr.push(Number(r.BIS));
           if (!isNaN(r.F1) && r.F1 !== "") f1Arr.push(Number(r.F1));
           // Panel dinámico BIS para docentes:
-          renderBISInterpretation(r);
+          renderBISInterpretation(r.BIS, r.Word, r.Dominant_emotion);
         }
         tbody.appendChild(tr);
       }
@@ -280,46 +297,37 @@
       document.getElementById("manual-status").textContent = "";
       document.getElementById("select-status").textContent = "";
       document.getElementById("comparative-panel").style.display = "none";
-      document.getElementById("bis-docente-panel").style.display = "none";
+      document.getElementById("bis-help").innerHTML = "";
     }
 
-    // Panel interpretación BIS para docentes (dinámico y refinado)
-    function renderBISInterpretation(result) {
-      const panel = document.getElementById("bis-docente-panel");
-      const text = document.getElementById("bis-docente-text");
-      if (!result || isNaN(Number(result.BIS))) {
-        panel.style.display = "none";
-        text.innerHTML = "";
+    // Panel interpretación BIS para docentes (dinámico y refinado, usando percentiles)
+    function renderBISInterpretation(BIS, word, emotion) {
+      const helpDiv = document.getElementById("bis-help");
+      if (typeof BIS === "undefined" || BIS === "" || bisQ1 === null || bisQ3 === null) {
+        helpDiv.innerHTML = "";
         return;
       }
-      const BIS = Number(result.BIS);
-      let tipo = "medio";
-      if (Math.abs(BIS) > 0.025) tipo = "alto";
-      else if (Math.abs(BIS) < 0.009) tipo = "bajo";
-      let desc = "";
-      if (tipo === "alto") {
-        desc = `<b>BIS alto:</b> “${result.Word}” es altamente prototípica de su grupo emocional (<b>${result.Dominant_emotion}</b>).<br>
-        Puede procesarse con mayor facilidad y es altamente recomendable como léxico base para actividades de identificación o enseñanza explícita de emociones.`;
-      } else if (tipo === "bajo") {
-        desc = `<b>BIS bajo:</b> “${result.Word}” es ambigua o atípica dentro de su grupo emocional (<b>${result.Dominant_emotion}</b>).<br>
-        Puede requerir mayor soporte contextual para su aprendizaje y procesamiento eficiente.`;
+      let rango = "medio", interpretacion = "";
+      if (BIS <= bisQ1) {
+        rango = "bajo";
+        interpretacion = `<strong>BIS bajo:</strong> “${word}” es atípica o menos representativa respecto de su grupo emocional (<b>${emotion}</b>).<br>
+        Puede ser más difícil de comprender o enseñar en contextos habituales; además, requiere mayor apoyo contextual o ejemplos prácticos.`;
+      } else if (BIS >= bisQ3) {
+        rango = "alto";
+        interpretacion = `<strong>BIS alto:</strong> “${word}” es altamente prototípica en su grupo emocional (<b>${emotion}</b>).<br>
+        Es más fácil de procesar, enseñar y recordar; suele estar asociada a experiencias o situaciones claras y reconocibles para los estudiantes.`;
       } else {
-        desc = `<b>BIS medio:</b> “${result.Word}” ocupa una posición intermedia en cuanto a prototipicidad emocional.<br>
-        Puede ser útil en la enseñanza de matices entre significados y promover el aprendizaje de diferencias culturales en la interpretación emocional.`;
+        interpretacion = `<strong>BIS medio:</strong> “${word}” ocupa una posición intermedia de representatividad en su grupo emocional (<b>${emotion}</b>).<br>
+        Puede usarse para enriquecer vocabulario o explorar matices afectivo-semánticos.`;
       }
-      text.innerHTML = `
-        <p><b>¿Qué es BIS?</b> Índice que mide el grado de prototipicidad y complejidad asociada de un ítem léxico respecto de su grupo emocional, en función de atributos como concretud, emocionalidad y frecuencia de uso.</p>
-        <p>${desc}</p>
-        <small>Cárdenas-Mancilla, M. H. (2025). EmoLex: A Random Forest classifier for emotional lexica in Spanish (Version 1.0.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.16467496</small>
-      `;
-      panel.style.display = "block";
+      helpDiv.innerHTML = `<div class="bis-interpretacion"><em>Interpretación BIS:</em> ${interpretacion}</div>`;
     }
 
     // Estadística mínima, usa functions.js si está disponible
     function mean(arr) { return typeof functions !== "undefined" && functions.mean ? functions.mean(arr) : (arr.length ? arr.reduce((a,b) => a+b,0)/arr.length : 0); }
     function sd(arr)   { return typeof functions !== "undefined" && functions.sd   ? functions.sd(arr)   : (arr.length ? Math.sqrt(arr.reduce((a,b)=>a+Math.pow(b-mean(arr),2),0)/arr.length) : 0); }
 
-    // PANEL COMPARATIVO BIS POR SUBCLUSTER (ahora incluye IC 95% para d)
+    // PANEL COMPARATIVO BIS POR SUBCLUSTER (incluye IC 95% para d)
     function buildComparativeTable(selectedWord) {
       const panel = document.getElementById("comparative-panel");
       if (!selectedWord || !LEXICON[selectedWord.toLowerCase()]) {
@@ -354,15 +362,16 @@
             </tr>`;
           });
         });
-        html += `</tbody></table>`;
+        html += "</tbody></table>";
 
-        // Comparación: Cohen's d, IC 95%, Hedges' g
-        const arrSel = clusterWords[subcluster].map(e=>Number(e.Balanced_Integration_Score)).filter(x=>!isNaN(x));
+        // Comparaciones BIS con funciones estadísticas
         let comparativo = '';
-        Object.entries(clusterWords).forEach(([sc, arr]) => {
-          if (Number(sc) !== subcluster) {
-            const arrOth = arr.map(e=>Number(e.Balanced_Integration_Score)).filter(x=>!isNaN(x));
-            if (arrSel.length > 2 && arrOth.length > 2 && typeof functions !== "undefined") {
+        if (typeof functions !== "undefined") {
+          const arrSel = (clusterWords[subcluster] || []).map(e => Number(e.Balanced_Integration_Score)).filter(x=>!isNaN(x));
+          Object.keys(clusterWords).forEach(sc => {
+            sc = Number(sc);
+            if (sc !== subcluster) {
+              const arrOth = clusterWords[sc].map(e => Number(e.Balanced_Integration_Score)).filter(x=>!isNaN(x));
               const m1 = mean(arrSel), m2 = mean(arrOth);
               const s1 = sd(arrSel), s2 = sd(arrOth);
               const n1 = arrSel.length, n2 = arrOth.length;
@@ -375,20 +384,19 @@
               const upper = functions.upper_d(d, v);
               const lower_g = functions.lower_d(g, vg);
               const upper_g = functions.upper_d(g, vg);
-              let interprete = '';
-              interprete = d > 0 ?
-                "El subclúster seleccionado presenta mayor prototipicidad emocional promedio que el comparado." :
-                "El subclúster comparado presenta mayor prototipicidad emocional promedio que el seleccionado.";
+
+              let sentido = d > 0 ? 
+                "El subclúster seleccionado muestra mayor prototipicidad emocional promedio." : 
+                "El subclúster comparado muestra mayor prototipicidad emocional promedio.";
               comparativo += `<div style="margin:0.5em 0 1em 0; border-left: 3px solid #a7cae3; padding-left: 1em;">
                 <b>Comparación ${subcluster} vs ${sc}:</b><br>
                 Cohen’s d = ${d.toFixed(3)}, IC 95%: [${lower.toFixed(3)}, ${upper.toFixed(3)}]<br>
                 Hedges’ g = ${g.toFixed(3)}, IC 95%: [${lower_g.toFixed(3)}, ${upper_g.toFixed(3)}]<br>
-                <span style="font-size:95%">${interprete}</span>
+                <span style="font-size:95%">${sentido}</span>
               </div>`;
             }
-          }
-        });
-
+          });
+        }
         panel.innerHTML = html + "<br>" + comparativo;
         panel.style.display = "block";
       } catch (err) {
@@ -397,5 +405,8 @@
       }
     }
   </script>
+  <footer style="text-align:center; margin:3em 0 0 0; color:#888; font-size:0.96em;">
+    &copy; 2025 LingTropy&nbsp;|&nbsp;Dr. Marcos H. Cárdenas Mancilla
+  </footer>
 </body>
 </html>
