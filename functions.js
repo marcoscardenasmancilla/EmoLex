@@ -1655,3 +1655,19 @@ function AFishF(p,n1,n2) { var v=0.5; var dv=0.5; var f=0
 
 /* end code */
 
+window.functions = {
+  mean: function(arr) {
+    if (!arr.length) return 0;
+    return arr.reduce((a, b) => a + b, 0) / arr.length;
+  },
+  sd: function(arr) {
+    const m = arr.reduce((a, b) => a + b, 0) / arr.length;
+    return Math.sqrt(arr.reduce((a, b) => a + Math.pow(b - m, 2), 0) / arr.length);
+  },
+  sdpooled: sdpooled,
+  vd: vd,
+  gfromd: gfromd,
+  vgfromvd: vgfromvd,
+  lower_d: lower_d,
+  upper_d: upper_d
+};
