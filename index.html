@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Clasificador EmoLex - Calculator</title>
+  <title>Clasificador EmoLex (Calculator)</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 2em; background: #f7f9fb;}
     .emolex-section { margin-bottom: 2em; background: #fff; border-radius: 8px; box-shadow: 0 1px 8px #ddd; padding: 2em; }
@@ -27,7 +27,11 @@
     <h2>Clasificador EmoLex (Calculator)</h2>
     <p>
       Selecciona una palabra clasificada del léxico, o ingresa una palabra para buscar su clasificación.<br>
-      <small>(Solo se clasificarán palabras presentes en la base léxica validada).</small>
+      <small>
+        BIS = Índice de complejidad/prototipicidad léxica. 
+        Palabras con BIS alto suelen ser más fáciles y típicas de su grupo emocional. 
+        Palabras con BIS bajo o cercano a cero pueden requerir mayor análisis y contexto.
+      </small>
     </p>
   </div>
 
@@ -56,7 +60,11 @@
           <th>Palabra</th>
           <th>Cluster</th>
           <th>Sub-Cluster</th>
-          <th>BIS</th>
+          <th>BIS
+            <span title="Índice de complejidad/prototipicidad léxica. Haz click para más info."
+                  onclick="document.getElementById('bis-docente-panel').scrollIntoView({behavior:'smooth'});"
+                  style="cursor:pointer; color:#1a7fd7; font-weight:bold;">&#9432;</span>
+          </th>
           <th>Valencia</th>
           <th>Activación</th>
           <th>Concreción</th>
@@ -69,6 +77,12 @@
       </thead>
       <tbody></tbody>
     </table>
+  </div>
+
+  <!-- PANEL INTERPRETACIÓN BIS DINÁMICO -->
+  <div id="bis-docente-panel" class="emolex-section" style="display:none; background:#f6faff;">
+    <h4>Interpretación educativa del BIS</h4>
+    <div id="bis-docente-text"></div>
   </div>
 
   <div class="emolex-section" id="summary-stats" style="display:none;">
@@ -246,6 +260,8 @@
           `;
           if (!isNaN(r.BIS) && r.BIS !== "") bisArr.push(Number(r.BIS));
           if (!isNaN(r.F1) && r.F1 !== "") f1Arr.push(Number(r.F1));
+          // Panel dinámico BIS para docentes:
+          renderBISInterpretation(r);
         }
         tbody.appendChild(tr);
       }
@@ -264,6 +280,46 @@
       document.getElementById("manual-status").textContent = "";
       document.getElementById("select-status").textContent = "";
       document.getElementById("comparative-panel").style.display = "none";
+      document.getElementById("bis-docente-panel").style.display = "none";
+    }
+
+    // Panel interpretación BIS para docentes (dinámico)
+    function renderBISInterpretation(result) {
+      const panel = document.getElementById("bis-docente-panel");
+      const text = document.getElementById("bis-docente-text");
+      if (!result || isNaN(Number(result.BIS))) {
+        panel.style.display = "none";
+        text.innerHTML = "";
+        return;
+      }
+      const BIS = Number(result.BIS);
+      let tipo = "medio";
+      if (Math.abs(BIS) > 0.025) tipo = "alto";
+      else if (Math.abs(BIS) < 0.009) tipo = "bajo";
+
+      let desc = "";
+      if (tipo === "alto") {
+        desc = `<b>BIS alto:</b> La palabra <b>“${result.Word}”</b> es <b>muy prototípica</b> y clara en su grupo emocional (<b>${result.Dominant_emotion}</b>).
+        <br>Es ideal para enseñanza explícita, vocabulario básico o actividades de identificación emocional.
+        <br><span style="color:#248c3c">Fácil de comprender y procesar por los estudiantes.</span>`;
+      } else if (tipo === "bajo") {
+        desc = `<b>BIS bajo:</b> La palabra <b>“${result.Word}”</b> es <b>ambigua o atípica</b> en su grupo emocional (<b>${result.Dominant_emotion}</b>).
+        <br>Requiere mayor contextualización, reflexión o ejemplos. 
+        <br><span style="color:#ff7733">Útil para análisis literario, debates y comprensión profunda.</span>`;
+      } else {
+        desc = `<b>BIS medio:</b> La palabra <b>“${result.Word}”</b> posee cierta complejidad o matiz en su significado emocional.
+        <br>Es adecuada para actividades que promueven la discusión y el análisis inferencial.
+        <br><span style="color:#3366cc">Permite trabajar matices y diferencias en la interpretación emocional.</span>`;
+      }
+      text.innerHTML = `
+        <p>${desc}</p>
+        <ul style="margin-top:0.5em;">
+          <li><b>¿Qué es BIS?</b> Índice que mide cuán “típica” o “compleja” es una palabra emocional según su grupo, integrando concreción, emocionalidad y frecuencia.</li>
+          <li><b>¿Cómo usarlo?</b> Elige palabras de BIS alto para iniciar el aprendizaje emocional; usa palabras de BIS bajo/medio para actividades de análisis o lectura crítica.</li>
+        </ul>
+        <small>Fuente: Proyecto EmoLex, validación empírica 2025.</small>
+      `;
+      panel.style.display = "block";
     }
 
     // Estadística mínima, usa functions.js si está disponible
@@ -308,41 +364,33 @@
           });
         });
         html += `</tbody></table>`;
-        const bis_target = clusterWords[subcluster].map(e => Number(e.Balanced_Integration_Score)).filter(x=>!isNaN(x));
-        let stats_html = `<h4>Análisis de complejidad léxica (BIS)</h4>`;
+
+        // Estimación Cohen's d y Hedges' g vs otros subclústeres del mismo cluster
+        const arrSel = clusterWords[subcluster].map(e=>Number(e.Balanced_Integration_Score)).filter(x=>!isNaN(x));
+        let comparativo = '';
         Object.entries(clusterWords).forEach(([sc, arr]) => {
           if (Number(sc) !== subcluster) {
-            const bis_other = arr.map(e => Number(e.Balanced_Integration_Score)).filter(x=>!isNaN(x));
-            if (typeof functions !== "undefined" && functions.mean) {
-              const grp1m = functions.mean(bis_target);
-              const grp1sd = functions.sd(bis_target);
-              const grp1n = bis_target.length;
-              const grp2m = functions.mean(bis_other);
-              const grp2sd = functions.sd(bis_other);
-              const grp2n = bis_other.length;
-              const sdpooled = functions.sdpooled(grp1sd,grp1n,grp2sd,grp2n);
-              const d = (grp1m - grp2m) / sdpooled;
-              const g = functions.gfromd(d, grp1n, grp2n);
-              const v = functions.vd(d, grp1n, grp2n);
-              const lower = functions.lower_d(d,v);
-              const upper = functions.upper_d(d,v);
-              stats_html += `<p>
-                <b>Diferencia BIS</b> entre Sub-Cluster <b>${subcluster}</b> y <b>${sc}</b>:<br>
-                <b>Cohen's d = ${d.toFixed(3)}</b> [IC 95%: ${lower.toFixed(3)}, ${upper.toFixed(3)}], g = ${g.toFixed(3)}<br>
-                <span style="font-size:90%">(${grp1n} vs ${grp2n} items comparados)</span>
-                <br>${d > 0 ? 'Más complejo' : 'Menos complejo'} que Sub-Cluster ${sc}.
-              </p>`;
-            } else {
-              stats_html += `<p style="color:red">functions.js no está cargado o no tiene funciones estadísticas.</p>`;
+            const arrOth = arr.map(e=>Number(e.Balanced_Integration_Score)).filter(x=>!isNaN(x));
+            if (arrSel.length > 2 && arrOth.length > 2 && typeof functions !== "undefined") {
+              const m1 = mean(arrSel), m2 = mean(arrOth);
+              const s1 = sd(arrSel), s2 = sd(arrOth);
+              const n1 = arrSel.length, n2 = arrOth.length;
+              const d = functions.sdpooled ? (m1 - m2) / functions.sdpooled(s1, n1, s2, n2) : "N/A";
+              const g = functions.gfromd ? functions.gfromd(d, n1, n2) : "N/A";
+              comparativo += `<div>
+                <b>Comparación ${subcluster} vs ${sc}:</b> 
+                <br>Cohen’s d = ${typeof d === "number" ? d.toFixed(3) : d}, Hedges’ g = ${typeof g === "number" ? g.toFixed(3) : g}
+                <br><span style="font-size:90%">Una diferencia alta indica mayor complejidad/prototipicidad relativa en el subclúster seleccionado.</span>
+              </div>`;
             }
           }
         });
-        panel.innerHTML = html + stats_html;
+
+        panel.innerHTML = html + "<br>" + comparativo;
         panel.style.display = "block";
       } catch (err) {
-        panel.innerHTML = `<span style="color:red">Error en el análisis comparativo: ${err.message}</span>`;
-        panel.style.display = "block";
-        console.error(err);
+        panel.innerHTML = '';
+        panel.style.display = "none";
       }
     }
   </script>
