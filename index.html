@@ -9,7 +9,7 @@
     .emolex-table { width: 100%; border-collapse: collapse; }
     .emolex-table th, .emolex-table td { border: 1px solid #bbb; padding: 0.5em; text-align: center; }
     .emolex-table th { background: #e8f1fa; }
-    #input-words, #word-select { width: 100%; height: 2.5em; margin-bottom: 1em; font-size: 1em; }
+    #word-select { width: 100%; height: 2.5em; margin-bottom: 1em; font-size: 1em; }
     button { padding: 0.5em 2em; font-size: 1em; background: #1a7fd7; color: #fff; border: none; border-radius: 5px; }
     #status { margin-top: 1em; color: #248c3c; font-weight: bold;}
     .warn { color:#a00; font-weight: bold; }
@@ -28,7 +28,7 @@
   <div class="emolex-section">
     <h2>EmoLex | Clasificador automático del léxico emocional en español</h2>
     <p>
-      Selecciona una palabra clasificada del léxico, o ingresa una palabra para buscar su clasificación.<br>
+      Selecciona una palabra clasificada del léxico y pulsa "Buscar y clasificar" para ver su perfil.<br>
       <small class="bis-info-tip">
         El <b>Índice de Prototipicidad Emocional (BIS)</b> indica qué tan representativa es una palabra dentro de su grupo emocional en función de atributos cuantitativos, afectivos y psicolingüísticos.
         Palabras con "BIS alto" suelen procesarse con mayor facilidad y son prototípicas en su clúster emocional; "BIS bajo" señala palabras atípicas o ambiguas; "BIS medio" indica palabras con matices afectivo-semánticos.
@@ -108,11 +108,11 @@
     // F1 POR SUB-CLUSTER (del log crossval)
     const F1_by_subcluster = { 1:0.832, 2:0.961, 3:0.943, 4:0.920 };
 
-    // LEXICON dinámico y percentiles BIS
     let LEXICON = {};
     let wordList = [];
     let bisQ1 = null, bisQ3 = null;
 
+    // 1. Cargar léxico y preparar el menú desplegable
     fetch('EmoLex.json')
       .then(response => response.json())
       .then(data => {
@@ -120,18 +120,22 @@
         wordList = [];
         const bisVals = [];
         data.forEach(entry => {
+          if (!entry || !entry.Word) return;
           const w = entry.Word.toLowerCase();
           LEXICON[w] = entry;
           wordList.push(w);
           const bis = Number(entry.Balanced_Integration_Score);
           if (!isNaN(bis)) bisVals.push(bis);
         });
-        // Calcular percentiles para BIS (25 y 75)
         bisVals.sort((a, b) => a - b);
         const n = bisVals.length;
         bisQ1 = bisVals[Math.floor(n * 0.25)];
         bisQ3 = bisVals[Math.floor(n * 0.75)];
         populateWordSelect();
+      }).catch(err => {
+        document.getElementById("select-status").innerHTML =
+          `<span class="warn">Error al cargar EmoLex.json</span>`;
+        document.getElementById("word-select").disabled = true;
       });
 
     function populateWordSelect() {
@@ -144,27 +148,15 @@
       });
     }
 
-    document.getElementById("word-select").addEventListener("change", function(e) {
-      const palabra = e.target.value;
-      document.getElementById("select-status").textContent = "";
-      if (palabra) {
-        const result = classifyWords([palabra]);
-        renderResults(result);
-        buildComparativeTable(palabra);
-        document.getElementById("results-panel").style.display = "block";
-        document.getElementById("summary-stats").style.display = "none";
-      } else {
-        clearTable();
-      }
-    });
-
-    document.getElementById("input-form").addEventListener("submit", function(e) {
+    // 2. Manejar el formulario de selección con botón
+    document.getElementById("select-form").addEventListener("submit", function(e) {
       e.preventDefault();
-      const palabra = document.getElementById("input-words").value.trim().toLowerCase();
-      const status = document.getElementById("manual-status");
+      const palabra = document.getElementById("word-select").value;
+      const status = document.getElementById("select-status");
       status.textContent = "";
       if (!palabra) {
-        status.textContent = "";
+        status.innerHTML = '<span class="warn">Debes seleccionar una palabra.</span>';
+        clearTable();
         return;
       }
       if (LEXICON[palabra]) {
@@ -272,7 +264,6 @@
           `;
           if (!isNaN(r.BIS) && r.BIS !== "") bisArr.push(Number(r.BIS));
           if (!isNaN(r.F1) && r.F1 !== "") f1Arr.push(Number(r.F1));
-          // Panel dinámico BIS para docentes:
           renderBISInterpretation(r.BIS, r.Word, r.Dominant_emotion);
         }
         tbody.appendChild(tr);
@@ -289,13 +280,11 @@
       document.querySelector("#results-table tbody").innerHTML = "";
       document.getElementById("results-panel").style.display = "none";
       document.getElementById("summary-stats").style.display = "none";
-      document.getElementById("manual-status").textContent = "";
       document.getElementById("select-status").textContent = "";
       document.getElementById("comparative-panel").style.display = "none";
       document.getElementById("bis-help").innerHTML = "";
     }
 
-    // Panel interpretación BIS para docentes (dinámico y refinado, usando percentiles)
     function renderBISInterpretation(BIS, word, emotion) {
       const helpDiv = document.getElementById("bis-help");
       if (typeof BIS === "undefined" || BIS === "" || bisQ1 === null || bisQ3 === null) {
@@ -322,7 +311,6 @@
     function mean(arr) { return typeof functions !== "undefined" && functions.mean ? functions.mean(arr) : (arr.length ? arr.reduce((a,b) => a+b,0)/arr.length : 0); }
     function sd(arr)   { return typeof functions !== "undefined" && functions.sd   ? functions.sd(arr)   : (arr.length ? Math.sqrt(arr.reduce((a,b)=>a+Math.pow(b-mean(arr),2),0)/arr.length) : 0); }
 
-    // PANEL COMPARATIVO BIS POR SUBCLUSTER (incluye IC 95% para d)
     function buildComparativeTable(selectedWord) {
       const panel = document.getElementById("comparative-panel");
       if (!selectedWord || !LEXICON[selectedWord.toLowerCase()]) {
@@ -405,4 +393,3 @@
   </footer>
 </body>
 </html>
-
