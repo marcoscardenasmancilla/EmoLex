@@ -74,6 +74,12 @@ Automatizar y mejorar la clasificación de palabras emocionales en español util
 
 ---
 
+## Web App
+
+https://marcoscardenasmancilla.github.io/EmoLex/
+
+---
+
 ## References / Referencias
 
 - Liesefeld, H. R., & Janczyk, M. (2019). Combining speed and accuracy to control for speed–accuracy trade-offs. *Behavior Research Methods, 51*(1), 40–60. https://doi.org/10.3758/s13428-018-1076-x  
