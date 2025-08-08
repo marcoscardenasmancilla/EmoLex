@@ -10,14 +10,15 @@
     .emolex-table th, .emolex-table td { border: 1px solid #bbb; padding: 0.5em; text-align: left; }
     .align-left { text-align: left !important; }
     #word-select { width: 100%; height: 2.5em; margin-bottom: 1em; font-size: 1em; }
-    button { padding: 0.5em 2em; font-size: 1em; background: #1a7fd7; color: #fff; border: none; border-radius: 5px; }
+    button { padding: 0.5em 2em; font-size: 1em; background: #1a7fd7; color: #fff; border: none; border-radius: 5px; cursor:pointer;}
     #status { margin-top: 1em; color: #248c3c; font-weight: bold;}
     .warn { color:#a00; font-weight: bold; }
     details { margin-top: 1em; }
     summary { font-weight: bold; }
     .bis-info-tip { font-size: 90%; color:#446;}
     .bis-interpretacion { background: #f6faff; margin-top:1em; border-radius: 5px; padding:1em; font-size: 1.07em;}
-    .flex-table-dashboard { display: flex; flex-direction: row; max-width: 1100px; }
+    .flex-table-dashboard { display: flex; flex-direction: row; max-width: 1200px; }
+    #dashboard-panel { flex:1; margin-left:2em; min-width:400px; max-width:540px; padding:20px 20px; display:flex; flex-direction:column; align-items:center; background:#f7fbff; border-radius:12px; box-shadow:0 1px 6px #ccd;}
     @media (max-width: 900px) {
       .flex-table-dashboard { flex-direction: column !important; }
       #dashboard-panel { margin-left: 0 !important; margin-top: 2em !important; max-width: 100vw; }
@@ -37,6 +38,9 @@
     }
     .legend-list { font-size: 1em; margin-top:1em; padding-left:0; }
     .legend-list li { list-style: none; margin:3px 0; }
+    .toggle-btn { background:#eee; border-radius:5px; color:#1a7fd7; border:1px solid #bbb; font-weight:bold; padding:2px 18px; margin:2px 0; font-size:1em;}
+    .toggle-btn:hover { background:#dbeeff; }
+    tbody[data-expanded="false"] tr:nth-child(n+11) { display: none; }
   </style>
   <script src="functions.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -78,18 +82,13 @@
           <th>Palabra</th>
           <th>Clúster</th>
           <th>Subclúster</th>
-          <th>
-            BIS
-            <span title="Haz click para ver interpretación de BIS"
-                  onclick="document.getElementById('bis-docente-panel').scrollIntoView({behavior:'smooth'});"
-                  style="cursor:pointer; color:#1a7fd7; font-weight:bold;">&#9432;</span>
-          </th>
+          <th>BIS</th>
           <th>Valencia</th>
           <th>Activación</th>
           <th>Concretud</th>
+          <th>Frecuencia (Zipf)</th>
           <th>Emocionalidad</th>
           <th>Emoción dominante</th>
-          <th>Frecuencia (Zipf)</th>
           <th>POS</th>
           <th>F1-score<br>(validación)</th>
         </tr>
@@ -99,54 +98,25 @@
     <div id="bis-help"></div>
   </div>
 
-  <!-- PANEL INTERPRETACIÓN BIS DINÁMICO -->
-  <div id="bis-docente-panel" class="emolex-section" style="display:none; background:#f6faff;">
-    <h4>¿Cómo interpretar el Índice BIS?</h4>
-    <ul>
-      <li><b>BIS bajo:</b> Palabra atípica y menos representativa del grupo emocional. Requiere apoyo contextual y ejemplos de uso de la lengua española para su enseñanza.</li>
-      <li><b>BIS medio:</b> Palabra de representatividad intermedia, útil para enseñar matices afectivo-semánticos en contextos de uso particulares y vocabulario extendido.</li>
-      <li><b>BIS alto:</b> Palabra prototípica y representatividad central del grupo emocional. Facilita el procesamiento afectivo-semántico y enseñanza del reconocimiento de emociones.</li>
-    </ul>
-    <small>Los cortes se adaptan automáticamente al léxico cargado (percentiles 25 y 75).</small>
-  </div>
-
-  <div class="emolex-section" id="summary-stats" style="display:none;">
-    <h3>Resumen estadístico (solo para selección múltiple)</h3>
-  </div>
-
-  <div id="comparative-panel" class="emolex-section" style="display:none;"></div>
-
-  <details class="emolex-section">
-    <summary>¿Cómo interpretar estos resultados?</summary>
-    <ul>
-      <li><b>Cluster/Subclúster:</b> Agrupación emocional asignada por el modelo.</li>
-      <li><b>BIS:</b> Índice de prototipicidad/atipicidad del léxico emocional.</li>
-      <li><b>F1-score:</b> Confiabilidad de la predicción a partir de la validación cruzada del modelo supervisado Random Forest.</li>
-      <li><b>Comparativa BIS:</b> Muestra la diferencia de prototipicidad (Cohen’s d, IC 95%, Hedges’ g) entre subclústeres del mismo clúster, considerando magnitud y dirección.</li>
-    </ul>
-  </details>
+  <div class="emolex-section" id="comparative-panel" style="display:none;"></div>
 
   <script>
-    // F1 POR SUB-CLUSTER (del log crossval)
-    const F1_by_subcluster = { 1:0.832, 2:0.961, 3:0.943, 4:0.920 };
-
     // Paleta Okabe & Ito color-blind friendly
     const chartColors = [
       "#0072B2", // Valencia
       "#E69F00", // Activación
       "#009E73", // Concretud
-      "#F0E442", // BIS
+      "#F0E442", // Frecuencia (Zipf)
       "#CC79A7"  // Emocionalidad
     ];
     const chartLabels = [
-      "Valencia", "Activación", "Concretud", "BIS", "Emocionalidad"
+      "Valencia", "Activación", "Concretud", "Frecuencia (Zipf)", "Emocionalidad"
     ];
 
     let LEXICON = {};
     let wordList = [];
     let bisQ1 = null, bisQ3 = null;
 
-    // 1. Cargar léxico y preparar el menú desplegable
     fetch('EmoLex.json')
       .then(response => response.json())
       .then(data => {
@@ -182,7 +152,6 @@
       });
     }
 
-    // 2. Manejar el formulario de selección con botón
     document.getElementById("select-form").addEventListener("submit", function(e) {
       e.preventDefault();
       const palabra = document.getElementById("word-select").value;
@@ -198,25 +167,23 @@
         renderResults(result);
         buildComparativeTable(palabra);
         document.getElementById("results-panel").style.display = "block";
-        document.getElementById("summary-stats").style.display = "none";
       } else {
         renderResults([{
           Word: palabra,
           Cluster: "No clasificada",
           "Sub-Cluster": "No clasificada",
-          BIS: "",
+          Balanced_Integration_Score: "",
           Valence_Mean: "",
           Arousal_Mean: "",
           Concreteness_Mean: "",
+          Zipf_EsPal: "",
           Emotionality: "",
           Dominant_emotion: "",
-          Zipf_EsPal: "",
           POS: "",
           F1: "",
           found: false
         }]);
         document.getElementById("results-panel").style.display = "block";
-        document.getElementById("summary-stats").style.display = "none";
         document.getElementById("comparative-panel").style.display = "none";
         status.innerHTML = `<span class="warn">Palabra no encontrada. Solo se pueden clasificar palabras presentes en el léxico.</span>`;
       }
@@ -227,24 +194,19 @@
         const key = word.toLowerCase();
         const entry = LEXICON[key];
         if (entry) {
-          let subCluster = Number(entry["Sub-Cluster"]);
-          let F1 = "N/A";
-          if (F1_by_subcluster.hasOwnProperty(subCluster)) {
-            F1 = F1_by_subcluster[subCluster];
-          }
           return {
             Word: word,
             Cluster: entry.Cluster ?? "N/A",
-            "Sub-Cluster": subCluster ?? "N/A",
-            BIS: entry.Balanced_Integration_Score ?? "",
+            "Sub-Cluster": entry["Sub-Cluster"] ?? "N/A",
+            Balanced_Integration_Score: entry.Balanced_Integration_Score ?? "",
             Valence_Mean: entry.Valence_Mean ?? "",
             Arousal_Mean: entry.Arousal_Mean ?? "",
             Concreteness_Mean: entry.Concreteness_Mean ?? "",
+            Zipf_EsPal: entry.Zipf_EsPal ?? "",
             Emotionality: entry.Emotionality ?? "",
             Dominant_emotion: entry.Dominant_emotion ?? "",
-            Zipf_EsPal: entry.Zipf_EsPal ?? "",
             POS: entry.POS ?? "",
-            F1: F1,
+            F1: entry.F1 ?? "",
             found: true
           };
         } else {
@@ -252,13 +214,13 @@
             Word: word,
             Cluster: "No clasificada",
             "Sub-Cluster": "No clasificada",
-            BIS: "",
+            Balanced_Integration_Score: "",
             Valence_Mean: "",
             Arousal_Mean: "",
             Concreteness_Mean: "",
+            Zipf_EsPal: "",
             Emotionality: "",
             Dominant_emotion: "",
-            Zipf_EsPal: "",
             POS: "",
             F1: "",
             found: false
@@ -270,8 +232,6 @@
     function renderResults(results) {
       const tbody = document.querySelector(".emolex-table tbody");
       tbody.innerHTML = "";
-      let bisArr = [];
-      let f1Arr = [];
       for (const r of results) {
         const tr = document.createElement("tr");
         if (!r.found) {
@@ -286,65 +246,32 @@
             <td>${r.Word}</td>
             <td>${r.Cluster}</td>
             <td>${r["Sub-Cluster"]}</td>
-            <td>${r.BIS}</td>
+            <td>${typeof r.Balanced_Integration_Score === "number"
+                    ? r.Balanced_Integration_Score.toFixed(15)
+                    : r.Balanced_Integration_Score}</td>
             <td>${r.Valence_Mean}</td>
             <td>${r.Arousal_Mean}</td>
             <td>${r.Concreteness_Mean}</td>
+            <td>${r.Zipf_EsPal}</td>
             <td>${r.Emotionality}</td>
             <td>${r.Dominant_emotion}</td>
-            <td>${r.Zipf_EsPal}</td>
             <td>${r.POS}</td>
             <td>${r.F1}</td>
           `;
-          if (!isNaN(r.BIS) && r.BIS !== "") bisArr.push(Number(r.BIS));
-          if (!isNaN(r.F1) && r.F1 !== "") f1Arr.push(Number(r.F1));
-          renderBISInterpretation(r.BIS, r.Word, r.Dominant_emotion);
         }
         tbody.appendChild(tr);
-      }
-      if (results.length > 1 && bisArr.length > 1) {
-        renderStats(bisArr, f1Arr);
-        document.getElementById("summary-stats").style.display = "block";
-      } else {
-        document.getElementById("summary-stats").style.display = "none";
       }
     }
 
     function clearTable() {
       document.querySelector(".emolex-table tbody").innerHTML = "";
       document.getElementById("results-panel").style.display = "none";
-      document.getElementById("summary-stats").style.display = "none";
       document.getElementById("select-status").textContent = "";
       document.getElementById("comparative-panel").style.display = "none";
       document.getElementById("bis-help").innerHTML = "";
     }
 
-    function renderBISInterpretation(BIS, word, emotion) {
-      const helpDiv = document.getElementById("bis-help");
-      if (typeof BIS === "undefined" || BIS === "" || bisQ1 === null || bisQ3 === null) {
-        helpDiv.innerHTML = "";
-        return;
-      }
-      let rango = "medio", interpretacion = "";
-      if (BIS <= bisQ1) {
-        rango = "bajo";
-        interpretacion = `<strong>BIS bajo:</strong> “${word}” es atípica o menos representativa respecto de su grupo emocional (<b>${emotion}</b>).<br>
-        Puede ser más difícil de comprender o enseñar en contextos habituales; además, requiere mayor apoyo contextual o ejemplos prácticos.`;
-      } else if (BIS >= bisQ3) {
-        rango = "alto";
-        interpretacion = `<strong>BIS alto:</strong> “${word}” es altamente prototípica en su grupo emocional (<b>${emotion}</b>).<br>
-        Es más fácil de procesar, enseñar y recordar; suele estar asociada a experiencias o situaciones claras y reconocibles para los estudiantes.`;
-      } else {
-        interpretacion = `<strong>BIS medio:</strong> “${word}” ocupa una posición intermedia de representatividad en su grupo emocional (<b>${emotion}</b>).<br>
-        Puede usarse para enriquecer vocabulario o explorar matices afectivo-semánticos.`;
-      }
-      helpDiv.innerHTML = `<div class="bis-interpretacion"><em>Interpretación BIS:</em> ${interpretacion}</div>`;
-    }
-
-    function mean(arr) { return typeof functions !== "undefined" && functions.mean ? functions.mean(arr) : (arr.length ? arr.reduce((a,b) => a+b,0)/arr.length : 0); }
-    function sd(arr)   { return typeof functions !== "undefined" && functions.sd   ? functions.sd(arr)   : (arr.length ? Math.sqrt(arr.reduce((a,b)=>a+Math.pow(b-mean(arr),2),0)/arr.length) : 0); }
-
-    // TABLA COMPARATIVA + DASHBOARD
+    // TABLA COMPARATIVA + DASHBOARD con visualización dinámica
     function buildComparativeTable(selectedWord) {
       const panel = document.getElementById("comparative-panel");
       const dashboard = document.getElementById("dashboard-panel");
@@ -357,17 +284,17 @@
       try {
         const entry = LEXICON[selectedWord.toLowerCase()];
         const cluster = entry.Cluster;
-        const subcluster = Number(entry["Sub-Cluster"]);
+        const subcluster = entry["Sub-Cluster"];
         let clusterWords = {};
         Object.values(LEXICON).forEach(e => {
           if (e.Cluster == cluster) {
-            const sc = Number(e["Sub-Cluster"]);
+            const sc = e["Sub-Cluster"];
             if (!clusterWords[sc]) clusterWords[sc] = [];
             clusterWords[sc].push(e);
           }
         });
 
-        // Ordena alfabéticamente las palabras de cada subclúster
+        // Ordena palabras de cada subclúster alfabéticamente
         Object.values(clusterWords).forEach(arr => {
           arr.sort((a, b) => a.Word.localeCompare(b.Word));
         });
@@ -387,10 +314,13 @@
                   <th class="align-left">Palabra</th>
                   <th class="align-left">BIS</th>
                 </tr>
-              </thead>
-              <tbody>`;
-        Object.entries(clusterWords).forEach(([sc, arr]) => {
-          arr.forEach(e => {
+              </thead>`;
+
+        // Tabla dinámica: solo primeras 10 por subclúster + botón expandir/contraer
+        Object.entries(clusterWords).forEach(([sc, arr], idx) => {
+          const subclusterId = `sc${sc}`;
+          html += `<tbody id="tbody-${subclusterId}" data-expanded="false">`;
+          arr.slice(0, 10).forEach(e => {
             html += `<tr${sc == subcluster ? ' style="background:#e8f8e1;"' : ''}>
               <td class="align-left">${sc}</td>
               <td class="align-left" style="cursor:pointer;"
@@ -400,45 +330,28 @@
                       : e.Balanced_Integration_Score}</td>
             </tr>`;
           });
+          html += `</tbody>`;
+          if (arr.length > 10) {
+            html += `
+              <tfoot id="tfoot-${subclusterId}">
+                <tr>
+                  <td colspan="3" style="text-align:center;">
+                    <button class="toggle-btn" type="button"
+                      onclick="toggleSubcluster('${subclusterId}', ${arr.length})">
+                      Mostrar más (${arr.length - 10} más)
+                    </button>
+                  </td>
+                </tr>
+              </tfoot>
+            `;
+          }
+          window[`words_${subclusterId}`] = arr;
         });
-        html += "</tbody></table>";
 
-        // Comparaciones BIS con funciones estadísticas
-        let comparativo = '';
-        if (typeof functions !== "undefined") {
-          const arrSel = (clusterWords[subcluster] || []).map(e => Number(e.Balanced_Integration_Score)).filter(x=>!isNaN(x));
-          Object.keys(clusterWords).forEach(sc => {
-            sc = Number(sc);
-            if (sc !== subcluster) {
-              const arrOth = clusterWords[sc].map(e => Number(e.Balanced_Integration_Score)).filter(x=>!isNaN(x));
-              const m1 = mean(arrSel), m2 = mean(arrOth);
-              const s1 = sd(arrSel), s2 = sd(arrOth);
-              const n1 = arrSel.length, n2 = arrOth.length;
-              const sd_pooled = functions.sdpooled(s1, n1, s2, n2);
-              const d = (m1 - m2) / sd_pooled;
-              const v  = functions.vd(d, n1, n2);
-              const g  = functions.gfromd(d, n1, n2);
-              const vg = functions.vgfromvd(v, n1, n2);
-              const lower = functions.lower_d(d, v);
-              const upper = functions.upper_d(d, v);
-              const lower_g = functions.lower_d(g, vg);
-              const upper_g = functions.upper_d(g, vg);
-              let sentido = d > 0 ? 
-                "El subclúster seleccionado muestra mayor prototipicidad emocional promedio." : 
-                "El subclúster comparado muestra mayor prototipicidad emocional promedio.";
-              comparativo += `<div style="margin:0.5em 0 1em 0; border-left: 3px solid #a7cae3; padding-left: 1em;">
-                <b>Comparación ${subcluster} vs ${sc}:</b><br>
-                Cohen’s d = ${d.toFixed(3)}, IC 95%: [${lower.toFixed(3)}, ${upper.toFixed(3)}]<br>
-                Hedges’ g = ${g.toFixed(3)}, IC 95%: [${lower_g.toFixed(3)}, ${upper_g.toFixed(3)}]<br>
-                <span style="font-size:95%">${sentido}</span>
-              </div>`;
-            }
-          });
-        }
-        html += "</div>";
-        html += `<div id="dashboard-panel" style="flex:1; margin-left:2em; min-width:320px; max-width:430px; padding:16px 14px 16px 14px; display:flex; flex-direction:column; align-items:center; background:#f7fbff; border-radius:12px; box-shadow:0 1px 6px #ccd;"></div></div>`;
+        html += "</table></div>";
+        html += `<div id="dashboard-panel" style="flex:1; margin-left:2em; min-width:400px; max-width:540px; padding:20px 20px; display:flex; flex-direction:column; align-items:center; background:#f7fbff; border-radius:12px; box-shadow:0 1px 6px #ccd;"></div></div>`;
 
-        panel.innerHTML = html + "<br>" + comparativo;
+        panel.innerHTML = html;
         panel.style.display = "block";
         showDashboard(selectedWord);
 
@@ -450,6 +363,44 @@
       }
     }
 
+    // Función global para mostrar más/menos palabras en la tabla comparativa por subclúster
+    window.toggleSubcluster = function(subclusterId, total) {
+      const tbody = document.getElementById('tbody-' + subclusterId);
+      const tfoot = document.getElementById('tfoot-' + subclusterId);
+      const arr = window[`words_${subclusterId}`];
+      if (!tbody || !tfoot || !arr) return;
+
+      const expanded = tbody.getAttribute('data-expanded') === "true";
+      tbody.innerHTML = '';
+      if (expanded) {
+        arr.slice(0, 10).forEach(e => {
+          tbody.innerHTML += `<tr>
+            <td class="align-left">${subclusterId.replace("sc","")}</td>
+            <td class="align-left" style="cursor:pointer;"
+                onclick="showDashboard('${e.Word.replace(/'/g,"\\'")}')">${e.Word}</td>
+            <td class="align-left">${typeof e.Balanced_Integration_Score === "number"
+                    ? e.Balanced_Integration_Score.toFixed(15)
+                    : e.Balanced_Integration_Score}</td>
+          </tr>`;
+        });
+        tfoot.querySelector('button').textContent = `Mostrar más (${arr.length - 10} más)`;
+        tbody.setAttribute('data-expanded', "false");
+      } else {
+        arr.forEach(e => {
+          tbody.innerHTML += `<tr>
+            <td class="align-left">${subclusterId.replace("sc","")}</td>
+            <td class="align-left" style="cursor:pointer;"
+                onclick="showDashboard('${e.Word.replace(/'/g,"\\'")}')">${e.Word}</td>
+            <td class="align-left">${typeof e.Balanced_Integration_Score === "number"
+                    ? e.Balanced_Integration_Score.toFixed(15)
+                    : e.Balanced_Integration_Score}</td>
+          </tr>`;
+        });
+        tfoot.querySelector('button').textContent = "Mostrar menos";
+        tbody.setAttribute('data-expanded', "true");
+      }
+    }
+
     // Visualización tipo dashboard con radar Chart.js y leyenda color-blind friendly
     function showDashboard(word) {
       const entry = LEXICON[word.toLowerCase()];
@@ -457,12 +408,12 @@
       if (!entry || !dashboard) { if (dashboard) dashboard.innerHTML = ""; return; }
       dashboard.innerHTML = `
         <h4 style="margin:0 0 0.7em 0; text-align:center;">${entry.Word}</h4>
-        <canvas id="chartjs-dashboard" width="320" height="320" style="display:block; margin-bottom:1.1em;"></canvas>
-        <ul class="legend-list" style="margin:0 auto 0.8em auto; max-width:280px;">
+        <canvas id="chartjs-dashboard" width="390" height="390" style="display:block; margin-bottom:1.1em;"></canvas>
+        <ul class="legend-list" style="margin:0 auto 0.8em auto; max-width:320px;">
           <li><span class="legend-dot" style="background:#0072B2"></span>Valencia</li>
           <li><span class="legend-dot" style="background:#E69F00"></span>Activación</li>
           <li><span class="legend-dot" style="background:#009E73"></span>Concretud</li>
-          <li><span class="legend-dot" style="background:#F0E442"></span>BIS</li>
+          <li><span class="legend-dot" style="background:#F0E442"></span>Frecuencia (Zipf)</li>
           <li><span class="legend-dot" style="background:#CC79A7"></span>Emocionalidad</li>
         </ul>
         <div style="margin:0.4em 0 0 0; font-size:1.04em;">
@@ -474,9 +425,7 @@
         entry.Valence_Mean ?? 0,
         entry.Arousal_Mean ?? 0,
         entry.Concreteness_Mean ?? 0,
-        typeof entry.Balanced_Integration_Score === "number"
-          ? Number(entry.Balanced_Integration_Score.toFixed(4))
-          : 0,
+        entry.Zipf_EsPal ?? 0,
         entry.Emotionality ?? 0
       ];
       const config = {
@@ -499,7 +448,7 @@
         },
         options: {
           plugins: { legend: { display: false }},
-          layout: { padding: 12 },
+          layout: { padding: 18 },
           scales: {
             r: {
               min: 0,
@@ -509,7 +458,7 @@
               pointLabels: {
                 color: chartColors,
                 font: { size: 17, weight: "bold" },
-                padding: 8
+                padding: 18
               },
               ticks: {
                 color: "#333",
