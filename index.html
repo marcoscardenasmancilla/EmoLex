@@ -313,18 +313,18 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       let interpretacion = "";
       if (BIS <= bisQ1) {
         interpretacion = `<strong>BIS bajo:</strong> “${word}” es atípica y menos representativa del grupo emocional (<b>${emotion}</b>).<br>
-        Requiere apoyo contextual y ejemplos concretos de uso para su enseñanza.
-		<small>Las palabras con BIS igual o inferior al percentil 25 (Q1, primer cuartil) son clasificadas como “BIS bajo” (menos prototípicas o más atípicas).</small>`;
+        Requiere apoyo contextual y ejemplos concretos de uso para su enseñanza.<br>
+		<small><em>Nota:</em>Palabras con BIS igual o inferior al percentil 25 (Q1, primer cuartil) se clasifican como “BIS bajo” (menos prototípicas o más atípicas).</small>`;
       } else if (BIS >= bisQ3) {
         interpretacion = `<strong>BIS alto:</strong> “${word}” es altamente prototípica en su grupo emocional (<b>${emotion}</b>).<br>
-        Facilita el acceso rápido a significados afectivo-semánticos y la enseñanza del léxico en el reconocimiento de emociones.
-		<small>Las palabras con BIS igual o superior a Q3 son clasificadas como “BIS alto” (más prototípicas dentro del clúster).</small>`;
+        Facilita el acceso rápido a significados afectivo-semánticos y la enseñanza del léxico en el reconocimiento de emociones.<br>
+		<small><em>Nota:</em>Palabras con BIS igual o superior al percentil 75 (Q3, tercer cuartil) se clasifican como “BIS alto” (más prototípicas dentro del clúster).</small>`;
       } else {
         interpretacion = `<strong>BIS medio:</strong> “${word}” ocupa una posición intermedia de representatividad en su grupo emocional (<b>${emotion}</b>).<br>
-        Es de utilidad para la enseñanza de matices afectivo-semánticos del léxico extendido a contextos particulares de uso.
-		<small>Las palabras cuyo BIS se encuentra entre el intervalo intercuartil (Q1 < BIS < Q3) se consideran de “BIS medio” (nivel intermedio de representatividad).</small>`;
+        Es de utilidad para la enseñanza de matices afectivo-semánticos del léxico extendido a contextos particulares de uso.<br>
+		<small><em>Nota:</em>Palabras cuyo BIS se encuentra entre el intervalo intercuartil (Q1 < BIS < Q3) se clasifican como “BIS medio” (nivel intermedio de representatividad).</small>`;
       }
-      helpDiv.innerHTML = `<div class="bis-interpretacion"><em>¿Cómo se interpreta el índice BIS?</em> ${interpretacion}</div>`;
+      helpDiv.innerHTML = `<div class="bis-interpretacion"><em>¿Cómo se interpreta el índice BIS?</em> ${interpretacion}<br></div>`;
     }
 
     // buildComparativeTable y dashboard como antes
@@ -570,6 +570,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   </footer>
 </body>
 </html>
+
 
 
 
