@@ -6,7 +6,7 @@
   <style>
     body { font-family: Arial, sans-serif; margin: 2em; background: #f7f9fb;}
     .emolex-section { margin-bottom: 2em; background: #fff; border-radius: 8px; box-shadow: 0 1px 8px #ddd; padding: 2em; }
-    .emolex-table { width: 100%; border-collapse: collapse; }
+    .emolex-table { width: 100%; max-width: 650px; border-collapse: collapse; }
     .emolex-table th, .emolex-table td { border: 1px solid #bbb; padding: 0.5em; text-align: left; }
     .align-left { text-align: left !important; }
     #word-select { width: 100%; height: 2.5em; margin-bottom: 1em; font-size: 1em; }
@@ -17,13 +17,15 @@
     summary { font-weight: bold; }
     .bis-info-tip { font-size: 90%; color:#446;}
     .bis-interpretacion { background: #f6faff; margin-top:1em; border-radius: 5px; padding:1em; font-size: 1.07em;}
+    .flex-table-dashboard { display: flex; flex-direction: row; max-width: 1100px; }
     @media (max-width: 900px) {
       .flex-table-dashboard { flex-direction: column !important; }
-      #dashboard-panel { margin-left: 0 !important; margin-top: 2em; }
+      #dashboard-panel { margin-left: 0 !important; margin-top: 2em !important; max-width: 100vw; }
     }
     @media (max-width: 700px) {
       .emolex-section { padding: 1em; }
       .emolex-table th, .emolex-table td { font-size: 0.95em; }
+      .flex-table-dashboard { padding: 0; }
     }
     .legend-dot {
       display:inline-block;
@@ -37,7 +39,6 @@
     .legend-list li { list-style: none; margin:3px 0; }
   </style>
   <script src="functions.js"></script>
-  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -66,7 +67,12 @@
 
   <div class="emolex-section" id="results-panel" style="display:none;">
     <h3>Resultados</h3>
-    <table id="results-table" class="emolex-table">
+    <table class="emolex-table">
+      <colgroup>
+        <col style="width: 19em;">
+        <col style="width: 19em;">
+        <col style="width: 19em;">
+      </colgroup>
       <thead>
         <tr>
           <th>Palabra</th>
@@ -126,11 +132,11 @@
 
     // Paleta Okabe & Ito color-blind friendly
     const chartColors = [
-      "#0072B2", // Valencia (azul)
-      "#E69F00", // Activación (naranja)
-      "#009E73", // Concretud (verde)
-      "#F0E442", // BIS (amarillo)
-      "#CC79A7"  // Emocionalidad (magenta)
+      "#0072B2", // Valencia
+      "#E69F00", // Activación
+      "#009E73", // Concretud
+      "#F0E442", // BIS
+      "#CC79A7"  // Emocionalidad
     ];
     const chartLabels = [
       "Valencia", "Activación", "Concretud", "BIS", "Emocionalidad"
@@ -262,7 +268,7 @@
     }
 
     function renderResults(results) {
-      const tbody = document.querySelector("#results-table tbody");
+      const tbody = document.querySelector(".emolex-table tbody");
       tbody.innerHTML = "";
       let bisArr = [];
       let f1Arr = [];
@@ -305,7 +311,7 @@
     }
 
     function clearTable() {
-      document.querySelector("#results-table tbody").innerHTML = "";
+      document.querySelector(".emolex-table tbody").innerHTML = "";
       document.getElementById("results-panel").style.display = "none";
       document.getElementById("summary-stats").style.display = "none";
       document.getElementById("select-status").textContent = "";
@@ -360,27 +366,19 @@
             clusterWords[sc].push(e);
           }
         });
-        // Encuentra la palabra más larga
-        let maxLen = 8;
-        Object.values(clusterWords).forEach(arr => {
-          arr.forEach(e => {
-            if (e.Word.length > maxLen) maxLen = e.Word.length;
-          });
-        });
-        const minWidth = maxLen + 2;
 
         // Ordena alfabéticamente las palabras de cada subclúster
         Object.values(clusterWords).forEach(arr => {
           arr.sort((a, b) => a.Word.localeCompare(b.Word));
         });
 
-        let html = `<div class="flex-table-dashboard" style="display: flex; flex-direction: row;">
+        let html = `<div class="flex-table-dashboard">
           <div style="flex:2;">
             <h4>Comparación de prototipicidad emocional (BIS) en clúster ${cluster}</h4>
-            <table class="emolex-table">
+            <table class="emolex-table" style="width:100%; max-width:650px;">
               <colgroup>
-                <col style="width: 7em;">
-                <col style="min-width:${minWidth}em;">
+                <col style="width: 19em;">
+                <col style="width: 19em;">
                 <col style="width: 19em;">
               </colgroup>
               <thead>
@@ -395,7 +393,7 @@
           arr.forEach(e => {
             html += `<tr${sc == subcluster ? ' style="background:#e8f8e1;"' : ''}>
               <td class="align-left">${sc}</td>
-              <td class="align-left" style="min-width:${minWidth}em; cursor:pointer;"
+              <td class="align-left" style="cursor:pointer;"
                   onclick="showDashboard('${e.Word.replace(/'/g,"\\'")}')">${e.Word}</td>
               <td class="align-left">${typeof e.Balanced_Integration_Score === "number"
                       ? e.Balanced_Integration_Score.toFixed(15)
@@ -438,7 +436,7 @@
           });
         }
         html += "</div>";
-        html += `<div id="dashboard-panel" style="flex:1; margin-left:2em; min-width:260px; max-width:340px;"></div></div>`;
+        html += `<div id="dashboard-panel" style="flex:1; margin-left:2em; min-width:320px; max-width:430px; padding:16px 14px 16px 14px; display:flex; flex-direction:column; align-items:center; background:#f7fbff; border-radius:12px; box-shadow:0 1px 6px #ccd;"></div></div>`;
 
         panel.innerHTML = html + "<br>" + comparativo;
         panel.style.display = "block";
@@ -458,21 +456,20 @@
       const dashboard = document.getElementById("dashboard-panel");
       if (!entry || !dashboard) { if (dashboard) dashboard.innerHTML = ""; return; }
       dashboard.innerHTML = `
-        <div style="background:#e8f1fa; border-radius:8px; padding:1.2em 1em 1em 1em; box-shadow:0 1px 6px #bbd;">
-          <h4 style="margin-top:0;">${entry.Word}</h4>
-          <canvas id="chartjs-dashboard" width="230" height="230" style="margin-bottom:0.9em;"></canvas>
-          <ul class="legend-list">
-            <li><span class="legend-dot" style="background:${chartColors[0]}"></span>Valencia</li>
-            <li><span class="legend-dot" style="background:${chartColors[1]}"></span>Activación</li>
-            <li><span class="legend-dot" style="background:${chartColors[2]}"></span>Concretud</li>
-            <li><span class="legend-dot" style="background:${chartColors[3]}"></span>BIS</li>
-            <li><span class="legend-dot" style="background:${chartColors[4]}"></span>Emocionalidad</li>
-          </ul>
-          <p style="margin:0.8em 0 0 0;"><b>Emoción dominante:</b> ${entry.Dominant_emotion ?? "–"}</p>
-          <p><b>POS:</b> ${entry.POS ?? "–"}</p>
+        <h4 style="margin:0 0 0.7em 0; text-align:center;">${entry.Word}</h4>
+        <canvas id="chartjs-dashboard" width="320" height="320" style="display:block; margin-bottom:1.1em;"></canvas>
+        <ul class="legend-list" style="margin:0 auto 0.8em auto; max-width:280px;">
+          <li><span class="legend-dot" style="background:#0072B2"></span>Valencia</li>
+          <li><span class="legend-dot" style="background:#E69F00"></span>Activación</li>
+          <li><span class="legend-dot" style="background:#009E73"></span>Concretud</li>
+          <li><span class="legend-dot" style="background:#F0E442"></span>BIS</li>
+          <li><span class="legend-dot" style="background:#CC79A7"></span>Emocionalidad</li>
+        </ul>
+        <div style="margin:0.4em 0 0 0; font-size:1.04em;">
+          <p style="margin:0.3em 0 0.2em 0;"><b>Emoción dominante:</b> ${entry.Dominant_emotion ?? "–"}</p>
+          <p style="margin:0.2em 0;"><b>POS:</b> ${entry.POS ?? "–"}</p>
         </div>
       `;
-      // Datos para el radar
       const data = [
         entry.Valence_Mean ?? 0,
         entry.Arousal_Mean ?? 0,
@@ -482,7 +479,6 @@
           : 0,
         entry.Emotionality ?? 0
       ];
-      // Radar chart con color-blind friendly
       const config = {
         type: 'radar',
         data: {
@@ -496,13 +492,14 @@
             borderWidth: 2,
             pointBackgroundColor: chartColors,
             pointBorderColor: "#fff",
-            pointRadius: 6,
+            pointRadius: 8,
             pointHoverBackgroundColor: "#fff",
             pointHoverBorderColor: chartColors
           }]
         },
         options: {
           plugins: { legend: { display: false }},
+          layout: { padding: 12 },
           scales: {
             r: {
               min: 0,
@@ -511,18 +508,19 @@
               grid: { color: "#e0e0e0" },
               pointLabels: {
                 color: chartColors,
-                font: { size: 14, weight: "bold" }
+                font: { size: 17, weight: "bold" },
+                padding: 8
               },
               ticks: {
                 color: "#333",
-                backdropColor: "#e8f1fa",
-                stepSize: 2
+                backdropColor: "#f7fbff",
+                stepSize: 2,
+                font: { size: 13 }
               }
             }
           }
         }
       };
-      // Destruye el gráfico anterior si existe
       if (window.chartjsDashboard) window.chartjsDashboard.destroy();
       window.chartjsDashboard = new Chart(
         document.getElementById('chartjs-dashboard'),
