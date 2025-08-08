@@ -2,155 +2,288 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Clasificador EmoLex Demo</title>
+  <title>Clasificador EmoLex - Calculator</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 2em; }
-    textarea { width: 100%; height: 80px; margin-top: 0.5em;}
-    table { margin-top:2em; border-collapse:collapse; width:100%;}
-    th, td { border:1px solid #aaa; padding:0.3em 0.5em; text-align:center;}
-    th { background:#f2f2f2; }
-    #status {margin-top:2em;}
-    button { margin-top:1em; }
+    body { font-family: Arial, sans-serif; margin: 2em; background: #f7f9fb;}
+    .emolex-section { margin-bottom: 2em; background: #fff; border-radius: 8px; box-shadow: 0 1px 8px #ddd; padding: 2em; }
+    .emolex-table { width: 100%; border-collapse: collapse; }
+    .emolex-table th, .emolex-table td { border: 1px solid #bbb; padding: 0.5em; text-align: center; }
+    .emolex-table th { background: #e8f1fa; }
+    #input-words, #word-select { width: 100%; height: 2.5em; margin-bottom: 1em; font-size: 1em; }
+    button { padding: 0.5em 2em; font-size: 1em; background: #1a7fd7; color: #fff; border: none; border-radius: 5px; }
+    #status { margin-top: 1em; color: #248c3c; font-weight: bold;}
+    .warn { color:#a00; font-weight: bold; }
+    details { margin-top: 1em; }
+    summary { font-weight: bold; }
+    @media (max-width: 700px) {
+      .emolex-section { padding: 1em; }
+      .emolex-table th, .emolex-table td { font-size: 0.95em; }
+    }
   </style>
+  <script src="functions.js"></script>
 </head>
 <body>
-  <h2>Clasificador EmoLex Demo (Emociones léxicas automáticas)</h2>
-  <form id="input-form">
-    <label>
-      Ingresa palabras (separadas por coma o salto de línea):
-      <textarea id="input-words" required placeholder="alegría, tristeza, miedo"></textarea>
-    </label>
-    <button type="submit">Clasificar palabras</button>
+  <div class="emolex-section">
+    <h2>Clasificador EmoLex (Calculator)</h2>
+    <p>
+      Selecciona una palabra clasificada del léxico, o ingresa una palabra para buscar su clasificación. <br>
+      <small>(Solo se clasificarán palabras presentes en la base léxica validada.)</small>
+    </p>
+  </div>
+
+  <!-- Panel de selección desplegable -->
+  <div class="emolex-section">
+    <label for="word-select"><b>Selecciona una palabra:</b></label>
+    <select id="word-select">
+      <option value="">-- Elige una palabra --</option>
+    </select>
+    <div id="select-status"></div>
+  </div>
+
+  <!-- Entrada manual -->
+  <form id="input-form" class="emolex-section">
+    <label for="input-words"><strong>O ingresa una palabra:</strong></label>
+    <input id="input-words" type="text" placeholder="Ejemplo: alegría" autocomplete="off">
+    <button type="submit">Buscar y clasificar</button>
+    <span id="manual-status"></span>
   </form>
 
-  <div id="results-container" style="display:none;">
-    <h3>Resultados:</h3>
-    <table id="results-table">
+  <div class="emolex-section" id="results-panel" style="display:none;">
+    <h3>Resultados</h3>
+    <table id="results-table" class="emolex-table">
       <thead>
         <tr>
-          <th>Word</th>
+          <th>Palabra</th>
           <th>Cluster</th>
           <th>Sub-Cluster</th>
           <th>BIS</th>
-          <th>Valence</th>
-          <th>Arousal</th>
-          <th>Concreteness</th>
-          <th>Emotionality</th>
-          <th>Dominant_emotion</th>
-          <th>Zipf_EsPal</th>
+          <th>Valencia</th>
+          <th>Activación</th>
+          <th>Concreción</th>
+          <th>Emocionalidad</th>
+          <th>Emoción dominante</th>
+          <th>Frecuencia (Zipf)</th>
           <th>POS</th>
-          <th>F1 Score</th>
+          <th>F1-score<br>(crossval)</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
-    <button id="send-to-sheet">Enviar todos los resultados a Google Sheet</button>
   </div>
-  <div id="status"></div>
+
+  <div class="emolex-section" id="summary-stats" style="display:none;">
+    <h3>Resumen estadístico (solo para selección múltiple)</h3>
+    <!-- Aquí se inserta el análisis dinámico -->
+  </div>
+
+  <details class="emolex-section">
+    <summary>¿Cómo interpretar estos resultados?</summary>
+    <ul>
+      <li><b>Cluster/Sub-Cluster:</b> agrupación emocional asignada por el modelo.</li>
+      <li><b>BIS:</b> índice de complejidad/prototipicidad léxica.</li>
+      <li><b>F1-score:</b> confiabilidad de la predicción (validación cruzada del modelo RF).</li>
+      <li><b>IC 95%:</b> intervalo de confianza, robustez de las estimaciones (solo para selección múltiple).</li>
+    </ul>
+  </details>
 
   <script>
-    // === Simulación de un "mini-lexicon" ===
-    // Reemplaza este objeto por tu tabla real de palabras o conexión a modelo RF exportado a JS
-    const LEXICON = {
-      "alegría": {
-        Cluster: 0, "Sub-Cluster": 1, BIS: 0.0023, Valence_Mean: 7.8, Arousal_Mean: 6.3, Concreteness_Mean: 4.1,
-        Emotionality: 0.96, Dominant_emotion: "joy", Zipf_EsPal: 5.7, POS: "noun", F1: 0.95
-      },
-      "tristeza": {
-        Cluster: 1, "Sub-Cluster": 2, BIS: 0.0011, Valence_Mean: 2.1, Arousal_Mean: 3.2, Concreteness_Mean: 4.2,
-        Emotionality: 0.89, Dominant_emotion: "sadness", Zipf_EsPal: 5.5, POS: "noun", F1: 0.91
-      },
-      "miedo": {
-        Cluster: 1, "Sub-Cluster": 2, BIS: 0.0018, Valence_Mean: 2.5, Arousal_Mean: 6.5, Concreteness_Mean: 4.0,
-        Emotionality: 0.92, Dominant_emotion: "fear", Zipf_EsPal: 5.6, POS: "noun", F1: 0.92
-      }
-      // ...agrega más palabras reales aquí
-    };
+    // F1 POR SUB-CLUSTER (del log crossval)
+    const F1_by_subcluster = { 1:0.832, 2:0.961, 3:0.943, 4:0.920 };
 
-    // Endpoint real de SheetDB
-    const SHEETDB_ENDPOINT = "https://sheetdb.io/api/v1/uh85eupspafxg";
+    // LEXICON dinámico
+    let LEXICON = {};
+    let wordList = [];
+    fetch('lexicon.json')
+      .then(response => response.json())
+      .then(data => {
+        LEXICON = {};
+        wordList = [];
+        data.forEach(entry => {
+          const w = entry.Word.toLowerCase();
+          LEXICON[w] = entry;
+          wordList.push(w);
+        });
+        populateWordSelect();
+      });
 
-    let lastResults = [];
-
-    document.getElementById("input-form").addEventListener("submit", function(e){
-      e.preventDefault();
-      const input = document.getElementById("input-words").value;
-      const words = input.split(/[\s,]+/).map(w=>w.trim().toLowerCase()).filter(Boolean);
-      const results = classifyWords(words);
-      lastResults = results;
-      renderResults(results);
-      document.getElementById("results-container").style.display = "block";
-      document.getElementById("status").textContent = "";
-    });
-
-    function classifyWords(words) {
-      // Aquí puedes conectar tu modelo real o usar un fetch a un API
-      return words.map(word => {
-        const entry = LEXICON[word] || {};
-        // Si la palabra no existe, usar valores vacíos/null
-        return {
-          Word: word,
-          Cluster: entry.Cluster ?? "N/A",
-          "Sub-Cluster": entry["Sub-Cluster"] ?? "N/A",
-          Balanced_Integration_Score: entry.BIS ?? "",
-          Valence_Mean: entry.Valence_Mean ?? "",
-          Arousal_Mean: entry.Arousal_Mean ?? "",
-          Concreteness_Mean: entry.Concreteness_Mean ?? "",
-          Emotionality: entry.Emotionality ?? "",
-          Dominant_emotion: entry.Dominant_emotion ?? "",
-          Zipf_EsPal: entry.Zipf_EsPal ?? "",
-          POS: entry.POS ?? "",
-          F1: entry.F1 ?? "",
-          userID: ""
-        };
+    function populateWordSelect() {
+      const select = document.getElementById("word-select");
+      wordList.sort().forEach(word => {
+        const opt = document.createElement("option");
+        opt.value = word;
+        opt.textContent = word;
+        select.appendChild(opt);
       });
     }
 
+    document.getElementById("word-select").addEventListener("change", function(e) {
+      const palabra = e.target.value;
+      document.getElementById("select-status").textContent = "";
+      if (palabra) {
+        const result = classifyWords([palabra]);
+        renderResults(result);
+        document.getElementById("results-panel").style.display = "block";
+        document.getElementById("summary-stats").style.display = "none";
+      } else {
+        clearTable();
+      }
+    });
+
+    document.getElementById("input-form").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const palabra = document.getElementById("input-words").value.trim().toLowerCase();
+      const status = document.getElementById("manual-status");
+      status.textContent = "";
+      if (!palabra) {
+        status.textContent = "";
+        return;
+      }
+      if (LEXICON[palabra]) {
+        const result = classifyWords([palabra]);
+        renderResults(result);
+        document.getElementById("results-panel").style.display = "block";
+        document.getElementById("summary-stats").style.display = "none";
+      } else {
+        renderResults([{
+          Word: palabra,
+          Cluster: "No clasificada",
+          "Sub-Cluster": "No clasificada",
+          BIS: "",
+          Valence_Mean: "",
+          Arousal_Mean: "",
+          Concreteness_Mean: "",
+          Emotionality: "",
+          Dominant_emotion: "",
+          Zipf_EsPal: "",
+          POS: "",
+          F1: "",
+          found: false
+        }]);
+        document.getElementById("results-panel").style.display = "block";
+        document.getElementById("summary-stats").style.display = "none";
+        status.innerHTML = `<span class="warn">Palabra no encontrada. Solo se pueden clasificar palabras presentes en el léxico.</span>`;
+      }
+    });
+
+    // --- Clasificador con F1 integrado ---
+    function classifyWords(words) {
+      return words.map(word => {
+        const key = word.toLowerCase();
+        const entry = LEXICON[key];
+        if (entry) {
+          const subCluster = entry["Sub-Cluster"] ?? "N/A";
+          let F1 = "N/A";
+          if (!isNaN(subCluster) && F1_by_subcluster[subCluster]) F1 = F1_by_subcluster[subCluster];
+          if (F1 === "N/A" && F1_by_subcluster[Number(subCluster)]) F1 = F1_by_subcluster[Number(subCluster)];
+          return {
+            Word: word,
+            Cluster: entry.Cluster ?? "N/A",
+            "Sub-Cluster": subCluster,
+            BIS: entry.Balanced_Integration_Score ?? "",
+            Valence_Mean: entry.Valence_Mean ?? "",
+            Arousal_Mean: entry.Arousal_Mean ?? "",
+            Concreteness_Mean: entry.Concreteness_Mean ?? "",
+            Emotionality: entry.Emotionality ?? "",
+            Dominant_emotion: entry.Dominant_emotion ?? "",
+            Zipf_EsPal: entry.Zipf_EsPal ?? "",
+            POS: entry.POS ?? "",
+            F1: F1,
+            found: true
+          };
+        } else {
+          return {
+            Word: word,
+            Cluster: "No clasificada",
+            "Sub-Cluster": "No clasificada",
+            BIS: "",
+            Valence_Mean: "",
+            Arousal_Mean: "",
+            Concreteness_Mean: "",
+            Emotionality: "",
+            Dominant_emotion: "",
+            Zipf_EsPal: "",
+            POS: "",
+            F1: "",
+            found: false
+          };
+        }
+      });
+    }
+
+    // Tabla de resultados (1 o varias palabras)
     function renderResults(results) {
       const tbody = document.querySelector("#results-table tbody");
       tbody.innerHTML = "";
+      let bisArr = [];
+      let f1Arr = [];
       for (const r of results) {
         const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${r.Word}</td>
-          <td>${r.Cluster}</td>
-          <td>${r["Sub-Cluster"]}</td>
-          <td>${r.Balanced_Integration_Score}</td>
-          <td>${r.Valence_Mean}</td>
-          <td>${r.Arousal_Mean}</td>
-          <td>${r.Concreteness_Mean}</td>
-          <td>${r.Emotionality}</td>
-          <td>${r.Dominant_emotion}</td>
-          <td>${r.Zipf_EsPal}</td>
-          <td>${r.POS}</td>
-          <td>${r.F1}</td>
-        `;
+        if (!r.found) {
+          tr.innerHTML = `
+            <td colspan="12" class="warn">
+              "${r.Word}": Palabra no encontrada en la base léxica. No puede ser clasificada automáticamente.
+            </td>
+          `;
+          tr.style.background = "#fbeaea";
+        } else {
+          tr.innerHTML = `
+            <td>${r.Word}</td>
+            <td>${r.Cluster}</td>
+            <td>${r["Sub-Cluster"]}</td>
+            <td>${r.BIS}</td>
+            <td>${r.Valence_Mean}</td>
+            <td>${r.Arousal_Mean}</td>
+            <td>${r.Concreteness_Mean}</td>
+            <td>${r.Emotionality}</td>
+            <td>${r.Dominant_emotion}</td>
+            <td>${r.Zipf_EsPal}</td>
+            <td>${r.POS}</td>
+            <td>${r.F1}</td>
+          `;
+          // Para panel de estadística múltiple
+          if (!isNaN(r.BIS) && r.BIS !== "") bisArr.push(Number(r.BIS));
+          if (!isNaN(r.F1) && r.F1 !== "") f1Arr.push(Number(r.F1));
+        }
         tbody.appendChild(tr);
       }
+      // Solo mostrar resumen si hay >1 resultado y todos válidos
+      if (results.length > 1 && bisArr.length > 1) {
+        renderStats(bisArr, f1Arr);
+        document.getElementById("summary-stats").style.display = "block";
+      } else {
+        document.getElementById("summary-stats").style.display = "none";
+      }
     }
-
-    document.getElementById("send-to-sheet").addEventListener("click", function() {
-      if (!lastResults.length) return;
-      document.getElementById("status").textContent = "Enviando datos a Google Sheet...";
-      Promise.all(lastResults.map(row => sendToSheetDB(row)))
-        .then(() => {
-          document.getElementById("status").textContent = "¡Todos los resultados fueron enviados!";
-        })
-        .catch(err => {
-          document.getElementById("status").textContent = "Error al enviar: " + err;
-        });
-    });
-
-    function sendToSheetDB(row) {
-      // SheetDB requiere un objeto { data: { ... } }
-      const payload = { data: { ...row, timestamp: new Date().toISOString() } };
-
-      return fetch(SHEETDB_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json; charset=UTF-8" },
-        body: JSON.stringify(payload)
-      })
-      .then(r => r.json());
+    function clearTable() {
+      document.querySelector("#results-table tbody").innerHTML = "";
+      document.getElementById("results-panel").style.display = "none";
+      document.getElementById("summary-stats").style.display = "none";
+      document.getElementById("manual-status").textContent = "";
+      document.getElementById("select-status").textContent = "";
+    }
+    // Estadística mínima, sustituye con tu functions.js si quieres más
+    function mean(arr) { return typeof functions !== "undefined" && functions.mean ? functions.mean(arr) : (arr.length ? arr.reduce((a,b) => a+b,0)/arr.length : 0); }
+    function sd(arr)   { return typeof functions !== "undefined" && functions.sd   ? functions.sd(arr)   : (arr.length ? Math.sqrt(arr.reduce((a,b)=>a+Math.pow(b-mean(arr),2),0)/arr.length) : 0); }
+    function lower_ci(m, s, n) { return typeof functions !== "undefined" && functions.lower_ci ? functions.lower_ci(m, s, n) : (m - 1.96*(s/Math.sqrt(n))); }
+    function upper_ci(m, s, n) { return typeof functions !== "undefined" && functions.upper_ci ? functions.upper_ci(m, s, n) : (m + 1.96*(s/Math.sqrt(n))); }
+    function renderStats(bisArr, f1Arr) {
+      let statsHTML = '';
+      if (bisArr.length) {
+        const mBIS = mean(bisArr), sBIS = sd(bisArr), nBIS = bisArr.length;
+        statsHTML += `<ul>
+          <li><strong>BIS promedio:</strong> ${mBIS.toFixed(4)}</li>
+          <li><strong>Desviación estándar BIS:</strong> ${sBIS.toFixed(4)}</li>
+          <li><strong>IC 95% BIS:</strong> [${lower_ci(mBIS,sBIS,nBIS).toFixed(4)}, ${upper_ci(mBIS,sBIS,nBIS).toFixed(4)}]</li>
+        </ul>`;
+      }
+      if (f1Arr.length) {
+        const mF1 = mean(f1Arr), sF1 = sd(f1Arr), nF1 = f1Arr.length;
+        statsHTML += `<ul>
+          <li><strong>F1-score promedio:</strong> ${mF1.toFixed(3)}</li>
+          <li><strong>IC 95% F1:</strong> [${lower_ci(mF1,sF1,nF1).toFixed(3)}, ${upper_ci(mF1,sF1,nF1).toFixed(3)}]</li>
+        </ul>`;
+      }
+      document.getElementById("summary-stats").innerHTML = statsHTML;
     }
   </script>
 </body>
