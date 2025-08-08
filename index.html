@@ -73,7 +73,6 @@
 
   <div class="emolex-section" id="summary-stats" style="display:none;">
     <h3>Resumen estadístico (solo para selección múltiple)</h3>
-    <!-- Aquí se inserta el análisis dinámico -->
   </div>
 
   <div id="comparative-panel" class="emolex-section" style="display:none;"></div>
@@ -275,75 +274,76 @@
 
     // PANEL COMPARATIVO BIS POR SUBCLUSTER (con functions.js)
     function buildComparativeTable(selectedWord) {
-      const entry = LEXICON[selectedWord.toLowerCase()];
-      if (!entry) {
-        document.getElementById("comparative-panel").style.display = "none";
+      const panel = document.getElementById("comparative-panel");
+      if (!selectedWord || !LEXICON[selectedWord.toLowerCase()]) {
+        panel.innerHTML = '';
+        panel.style.display = "none";
         return;
       }
-
-      const cluster = entry.Cluster;
-      const subcluster = Number(entry["Sub-Cluster"]);
-      let clusterWords = {};
-      Object.values(LEXICON).forEach(e => {
-        if (e.Cluster == cluster) {
-          const sc = Number(e["Sub-Cluster"]);
-          if (!clusterWords[sc]) clusterWords[sc] = [];
-          clusterWords[sc].push(e);
-        }
-      });
-
-      // Render tabla comparativa
-      let html = `<h4>Comparativa BIS en Clúster ${cluster}</h4>`;
-      html += `<table class="emolex-table"><thead><tr>
-          <th>Sub-Cluster</th><th>Palabra</th><th>BIS</th>
-        </tr></thead><tbody>`;
-      Object.entries(clusterWords).forEach(([sc, arr]) => {
-        arr.forEach(e => {
-          html += `<tr${sc == subcluster ? ' style="background:#e8f8e1;"' : ''}>
-            <td>${sc}</td>
-            <td>${e.Word}</td>
-            <td>${typeof e.Balanced_Integration_Score === "number"
-                    ? e.Balanced_Integration_Score.toFixed(5)
-                    : e.Balanced_Integration_Score}</td>
-          </tr>`;
+      try {
+        const entry = LEXICON[selectedWord.toLowerCase()];
+        const cluster = entry.Cluster;
+        const subcluster = Number(entry["Sub-Cluster"]);
+        let clusterWords = {};
+        Object.values(LEXICON).forEach(e => {
+          if (e.Cluster == cluster) {
+            const sc = Number(e["Sub-Cluster"]);
+            if (!clusterWords[sc]) clusterWords[sc] = [];
+            clusterWords[sc].push(e);
+          }
         });
-      });
-      html += `</tbody></table>`;
-
-      // Análisis de BIS usando functions.js (Cohen's d)
-      const bis_target = clusterWords[subcluster].map(e => Number(e.Balanced_Integration_Score)).filter(x=>!isNaN(x));
-      let stats_html = `<h4>Análisis de complejidad léxica (BIS)</h4>`;
-      Object.entries(clusterWords).forEach(([sc, arr]) => {
-        if (Number(sc) !== subcluster) {
-          const bis_other = arr.map(e => Number(e.Balanced_Integration_Score)).filter(x=>!isNaN(x));
-          const grp1m = functions.mean(bis_target);
-          const grp1sd = functions.sd(bis_target);
-          const grp1n = bis_target.length;
-          const grp2m = functions.mean(bis_other);
-          const grp2sd = functions.sd(bis_other);
-          const grp2n = bis_other.length;
-          // d, g, varianzas, IC 95%
-          const sdpooled = functions.sdpooled(grp1sd,grp1n,grp2sd,grp2n);
-          const d = (grp1m - grp2m) / sdpooled;
-          const g = functions.gfromd(d, grp1n, grp2n);
-          const v = functions.vd(d, grp1n, grp2n);
-          const vg = functions.vgfromvd(v, grp1n, grp2n);
-          const se = Math.sqrt(v);
-          const seg = Math.sqrt(vg);
-          const lower = functions.lower_d(d,v);
-          const upper = functions.upper_d(d,v);
-
-          stats_html += `<p>
-            <b>Diferencia BIS</b> entre Sub-Cluster <b>${subcluster}</b> y <b>${sc}</b>:<br>
-            <b>Cohen's d = ${d.toFixed(3)}</b> [IC 95%: ${lower.toFixed(3)}, ${upper.toFixed(3)}], g = ${g.toFixed(3)}<br>
-            <span style="font-size:90%">(${grp1n} vs ${grp2n} items comparados)</span>
-            <br>${d > 0 ? 'Más complejo' : 'Menos complejo'} que Sub-Cluster ${sc}.
-          </p>`;
-        }
-      });
-
-      document.getElementById("comparative-panel").innerHTML = html + stats_html;
-      document.getElementById("comparative-panel").style.display = "block";
+        let html = `<h4>Comparativa BIS en Clúster ${cluster}</h4>`;
+        html += `<table class="emolex-table"><thead><tr>
+            <th>Sub-Cluster</th><th>Palabra</th><th>BIS</th>
+          </tr></thead><tbody>`;
+        Object.entries(clusterWords).forEach(([sc, arr]) => {
+          arr.forEach(e => {
+            html += `<tr${sc == subcluster ? ' style="background:#e8f8e1;"' : ''}>
+              <td>${sc}</td>
+              <td>${e.Word}</td>
+              <td>${typeof e.Balanced_Integration_Score === "number"
+                      ? e.Balanced_Integration_Score.toFixed(5)
+                      : e.Balanced_Integration_Score}</td>
+            </tr>`;
+          });
+        });
+        html += `</tbody></table>`;
+        const bis_target = clusterWords[subcluster].map(e => Number(e.Balanced_Integration_Score)).filter(x=>!isNaN(x));
+        let stats_html = `<h4>Análisis de complejidad léxica (BIS)</h4>`;
+        Object.entries(clusterWords).forEach(([sc, arr]) => {
+          if (Number(sc) !== subcluster) {
+            const bis_other = arr.map(e => Number(e.Balanced_Integration_Score)).filter(x=>!isNaN(x));
+            if (typeof functions !== "undefined" && functions.mean) {
+              const grp1m = functions.mean(bis_target);
+              const grp1sd = functions.sd(bis_target);
+              const grp1n = bis_target.length;
+              const grp2m = functions.mean(bis_other);
+              const grp2sd = functions.sd(bis_other);
+              const grp2n = bis_other.length;
+              const sdpooled = functions.sdpooled(grp1sd,grp1n,grp2sd,grp2n);
+              const d = (grp1m - grp2m) / sdpooled;
+              const g = functions.gfromd(d, grp1n, grp2n);
+              const v = functions.vd(d, grp1n, grp2n);
+              const lower = functions.lower_d(d,v);
+              const upper = functions.upper_d(d,v);
+              stats_html += `<p>
+                <b>Diferencia BIS</b> entre Sub-Cluster <b>${subcluster}</b> y <b>${sc}</b>:<br>
+                <b>Cohen's d = ${d.toFixed(3)}</b> [IC 95%: ${lower.toFixed(3)}, ${upper.toFixed(3)}], g = ${g.toFixed(3)}<br>
+                <span style="font-size:90%">(${grp1n} vs ${grp2n} items comparados)</span>
+                <br>${d > 0 ? 'Más complejo' : 'Menos complejo'} que Sub-Cluster ${sc}.
+              </p>`;
+            } else {
+              stats_html += `<p style="color:red">functions.js no está cargado o no tiene funciones estadísticas.</p>`;
+            }
+          }
+        });
+        panel.innerHTML = html + stats_html;
+        panel.style.display = "block";
+      } catch (err) {
+        panel.innerHTML = `<span style="color:red">Error en el análisis comparativo: ${err.message}</span>`;
+        panel.style.display = "block";
+        console.error(err);
+      }
     }
   </script>
 </body>
