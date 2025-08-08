@@ -67,8 +67,8 @@
       // ...agrega más palabras reales aquí
     };
 
-    // Tu endpoint real de Apps Script
-    const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbw9fD1hTqlK2ujUHAr_gEn0fRY4rWt_YjRlUB-ubftJDaW3HgpMo6gcNKW6m94jQn4aHA/exec";
+    // Endpoint real de SheetDB
+    const SHEETDB_ENDPOINT = "https://sheetdb.io/api/v1/uh85eupspafxg";
 
     let lastResults = [];
 
@@ -92,7 +92,7 @@
           Word: word,
           Cluster: entry.Cluster ?? "N/A",
           "Sub-Cluster": entry["Sub-Cluster"] ?? "N/A",
-          BIS: entry.BIS ?? "",
+          Balanced_Integration_Score: entry.BIS ?? "",
           Valence_Mean: entry.Valence_Mean ?? "",
           Arousal_Mean: entry.Arousal_Mean ?? "",
           Concreteness_Mean: entry.Concreteness_Mean ?? "",
@@ -100,7 +100,8 @@
           Dominant_emotion: entry.Dominant_emotion ?? "",
           Zipf_EsPal: entry.Zipf_EsPal ?? "",
           POS: entry.POS ?? "",
-          F1: entry.F1 ?? ""
+          F1: entry.F1 ?? "",
+          userID: ""
         };
       });
     }
@@ -114,7 +115,7 @@
           <td>${r.Word}</td>
           <td>${r.Cluster}</td>
           <td>${r["Sub-Cluster"]}</td>
-          <td>${r.BIS}</td>
+          <td>${r.Balanced_Integration_Score}</td>
           <td>${r.Valence_Mean}</td>
           <td>${r.Arousal_Mean}</td>
           <td>${r.Concreteness_Mean}</td>
@@ -131,7 +132,7 @@
     document.getElementById("send-to-sheet").addEventListener("click", function() {
       if (!lastResults.length) return;
       document.getElementById("status").textContent = "Enviando datos a Google Sheet...";
-      Promise.all(lastResults.map(row => sendToSheet(row)))
+      Promise.all(lastResults.map(row => sendToSheetDB(row)))
         .then(() => {
           document.getElementById("status").textContent = "¡Todos los resultados fueron enviados!";
         })
@@ -140,12 +141,13 @@
         });
     });
 
-    function sendToSheet(row) {
-      // Puedes agregar userID o sesión si deseas
-      const payload = {...row, userID: ""};
-      return fetch(ENDPOINT_URL, {
+    function sendToSheetDB(row) {
+      // SheetDB requiere un objeto { data: { ... } }
+      const payload = { data: { ...row, timestamp: new Date().toISOString() } };
+
+      return fetch(SHEETDB_ENDPOINT, {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
+        headers: { "Content-Type": "application/json; charset=UTF-8" },
         body: JSON.stringify(payload)
       })
       .then(r => r.json());
@@ -153,4 +155,3 @@
   </script>
 </body>
 </html>
-
