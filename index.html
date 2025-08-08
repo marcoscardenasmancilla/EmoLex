@@ -31,27 +31,22 @@
       Selecciona una palabra clasificada del léxico, o ingresa una palabra para buscar su clasificación.<br>
       <small class="bis-info-tip">
         El <b>Índice de Prototipicidad Emocional (BIS)</b> indica qué tan representativa es una palabra dentro de su grupo emocional en función de atributos cuantitativos, afectivos y psicolingüísticos.
-        Palabras con BIS alto suelen procesarse con mayor facilidad y son prototípicas en su clúster emocional; "BIS bajo" señala palabras atípicas o ambiguas. El valor medio corresponde a palabras con matices semánticos.
+        Palabras con "BIS alto" suelen procesarse con mayor facilidad y son prototípicas en su clúster emocional; "BIS bajo" señala palabras atípicas o ambiguas; "BIS medio" indica palabras con matices afectivo-semánticos.
       </small>
     </p>
   </div>
 
   <!-- Panel de selección desplegable -->
   <div class="emolex-section">
-    <label for="word-select"><b>Selecciona una palabra:</b></label>
-    <select id="word-select">
-      <option value="">-- Elige una palabra --</option>
-    </select>
+    <form id="select-form" autocomplete="off">
+      <label for="word-select"><b>Selecciona una palabra para su clasificación:</b></label>
+      <select id="word-select">
+        <option value="">-- Elige una palabra --</option>
+      </select>
+      <button type="submit">Buscar y clasificar</button>
+    </form>
     <div id="select-status"></div>
   </div>
-
-  <!-- Entrada manual -->
-  <form id="input-form" class="emolex-section" autocomplete="off">
-    <label for="input-words"><strong>O ingresa una palabra:</strong></label>
-    <input id="input-words" type="text" placeholder="Ejemplo: alegría">
-    <button type="submit">Buscar y clasificar</button>
-    <span id="manual-status"></span>
-  </form>
 
   <div class="emolex-section" id="results-panel" style="display:none;">
     <h3>Resultados</h3>
@@ -59,22 +54,22 @@
       <thead>
         <tr>
           <th>Palabra</th>
-          <th>Cluster</th>
-          <th>Sub-Cluster</th>
+          <th>Clúster</th>
+          <th>Subclúster</th>
           <th>
             BIS
-            <span title="Haz click para ver interpretación educativa del BIS"
+            <span title="Haz click para ver interpretación de BIS"
                   onclick="document.getElementById('bis-docente-panel').scrollIntoView({behavior:'smooth'});"
                   style="cursor:pointer; color:#1a7fd7; font-weight:bold;">&#9432;</span>
           </th>
           <th>Valencia</th>
           <th>Activación</th>
-          <th>Concreción</th>
+          <th>Concretud</th>
           <th>Emocionalidad</th>
           <th>Emoción dominante</th>
           <th>Frecuencia (Zipf)</th>
           <th>POS</th>
-          <th>F1-score<br>(crossval)</th>
+          <th>F1-score<br>(validación)</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -86,9 +81,9 @@
   <div id="bis-docente-panel" class="emolex-section" style="display:none; background:#f6faff;">
     <h4>¿Cómo interpretar el Índice BIS?</h4>
     <ul>
-      <li><b>BIS bajo:</b> Palabra atípica o menos representativa dentro del grupo emocional. Requiere apoyo contextual o ejemplos para su enseñanza.</li>
-      <li><b>BIS medio:</b> Palabra de representatividad intermedia, útil para trabajar matices semánticos o vocabulario extendido.</li>
-      <li><b>BIS alto:</b> Palabra prototípica y central del grupo emocional. Fácil de procesar y enseñar.</li>
+      <li><b>BIS bajo:</b> Palabra atípica y menos representativa del grupo emocional. Requiere apoyo contextual y ejemplos de uso de la lengua española para su enseñanza.</li>
+      <li><b>BIS medio:</b> Palabra de representatividad intermedia, útil para enseñar matices afectivo-semánticos en contextos de uso particulares y vocabulario extendido.</li>
+      <li><b>BIS alto:</b> Palabra prototípica y representatividad central del grupo emocional. Facilita el procesamiento afectivo-semántico y enseñanza del reconocimiento de emociones.</li>
     </ul>
     <small>Los cortes se adaptan automáticamente al léxico cargado (percentiles 25 y 75).</small>
   </div>
@@ -103,9 +98,9 @@
     <summary>¿Cómo interpretar estos resultados?</summary>
     <ul>
       <li><b>Cluster/Subclúster:</b> Agrupación emocional asignada por el modelo.</li>
-      <li><b>BIS:</b> Índice de prototipicidad/ambigüedad léxica.</li>
-      <li><b>F1-score:</b> Confiabilidad de la predicción (validación cruzada del modelo RF).</li>
-      <li><b>Comparativa BIS:</b> Se reporta la diferencia de prototipicidad (Cohen’s d, IC 95%, Hedges’ g) entre subclústeres del mismo clúster, considerando magnitud y dirección.</li>
+      <li><b>BIS:</b> Índice de prototipicidad/atipicidad del léxico emocional.</li>
+      <li><b>F1-score:</b> Confiabilidad de la predicción a partir de la validación cruzada del modelo supervisado Random Forest.</li>
+      <li><b>Comparativa BIS:</b> Muestra la diferencia de prototipicidad (Cohen’s d, IC 95%, Hedges’ g) entre subclústeres del mismo clúster, considerando magnitud y dirección.</li>
     </ul>
   </details>
 
@@ -118,7 +113,7 @@
     let wordList = [];
     let bisQ1 = null, bisQ3 = null;
 
-    fetch('lexicon.json')
+    fetch('EmoLex.json')
       .then(response => response.json())
       .then(data => {
         LEXICON = {};
@@ -349,7 +344,7 @@
         });
         let html = `<h4>Comparación de prototipicidad emocional (BIS) en clúster ${cluster}</h4>`;
         html += `<table class="emolex-table"><thead><tr>
-            <th>Sub-Cluster</th><th>Palabra</th><th>BIS</th>
+            <th>Subclúster</th><th>Palabra</th><th>BIS</th>
           </tr></thead><tbody>`;
         Object.entries(clusterWords).forEach(([sc, arr]) => {
           arr.forEach(e => {
@@ -410,3 +405,4 @@
   </footer>
 </body>
 </html>
+
